@@ -265,10 +265,15 @@ class CLIInterface:
                     padding=(1, 2)
                 ))
 
-            # Show pagination info between batches
+            # Show pagination prompt between batches
             if batch_start + batch_size < len(offenders):
                 remaining = len(offenders) - (batch_start + batch_size)
-                self.console.print(f"\n[dim]─── {remaining} more subscription(s) below ───[/dim]\n")
+                self.console.print(f"\n[dim]─── {remaining} more subscription(s) below ───[/dim]")
+                user_input = self.console.input("[cyan]Press Enter to see next 3 (or 'q' to stop)[/cyan] ")
+                if user_input.lower() == 'q':
+                    self.console.print("[yellow]Stopped viewing. You can still select from all subscriptions shown above.[/yellow]\n")
+                    break
+                self.console.print()
 
         self.console.print()
 
