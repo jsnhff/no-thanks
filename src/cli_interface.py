@@ -252,8 +252,8 @@ class CLIInterface:
                 # Create detailed card for each subscription
                 card_content = (
                     f"[bold cyan]#{idx}. {sender_name}[/bold cyan]\n\n"
-                    f"[green]🤖 Hot Take:[/green] {hot_take}\n\n"
-                    f"[yellow]📊 Stats:[/yellow]\n"
+                    f"[green]🤖 What's their deal?[/green]\n{hot_take}\n\n"
+                    f"[yellow]📊 Your stats:[/yellow]\n"
                     f"  • Total emails: {offender['total_emails']}\n"
                     f"  • Unread: {offender['unread_emails']} ({offender['unread_percentage']:.0f}%)\n"
                     f"  • Last read: {last_read_str}"

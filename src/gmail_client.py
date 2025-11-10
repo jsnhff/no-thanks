@@ -261,30 +261,31 @@ User context:
 
             message = self.anthropic_client.messages.create(
                 model="claude-3-haiku-20240307",
-                max_tokens=150,
+                max_tokens=200,
                 messages=[{
                     "role": "user",
-                    "content": f"""Based on these email subject lines from {sender_name}, give me a brutally honest, no-BS summary of what they actually send (not marketing fluff).
+                    "content": f"""Based on these email subject lines from {sender_name}, give me a detailed but direct assessment.
 
 Subject lines:
 {subjects_text}
 {user_context}
-In ONE punchy sentence (max 15 words), tell me:
-- What they're really selling/promoting (cut through the marketing speak)
-- Is this useful FOR THIS SPECIFIC USER, or just noise?
+In 2-3 SHORT sentences (max 40 words total), tell me:
+1. What is this sender ACTUALLY trying to do? (their real goal/business model)
+2. Why do they keep emailing? (what action do they want from you)
+3. Is this relevant/useful FOR THIS SPECIFIC USER or just noise?
 
-Be direct and honest. Tailor your response to the user's interests and values. Examples:
-- "Daily deals on clothing - pure marketing noise"
-- "Code tutorials and dev tools - useful for engineers"
-- "Political fundraising emails - probably not needed"
-- "Design leadership insights - matches your role perfectly"
+Be direct and honest. Cut through marketing BS. Tailor to user's interests. Examples:
+- "E-commerce trying to drive repeat purchases with daily deals and urgency tactics. Wants you to impulse buy. Pure marketing noise for your work."
+- "Design newsletter curating trends and case studies. Building engaged audience. Actually useful for your Shopify leadership role."
+- "Travel company pushing vacation packages with FOMO tactics. Wants bookings. Not relevant to current priorities."
 
-Your hot take:"""
+Your assessment:"""
                 }]
             )
 
             summary = message.content[0].text.strip()
-            return summary if len(summary) < 120 else summary[:117] + "..."
+            # Allow longer summaries since we want more detail
+            return summary if len(summary) < 250 else summary[:247] + "..."
 
         except Exception:
             return ""  # Summaries are optional, don't fail if they don't work
