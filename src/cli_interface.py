@@ -221,7 +221,7 @@ class CLIInterface:
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("#", style="dim", width=4)
         table.add_column("Sender", style="cyan", width=25)
-        table.add_column("About", style="green", width=35)
+        table.add_column("Hot Take", style="green", width=45)
         table.add_column("Total", style="white", width=5, justify="right")
         table.add_column("Unread", style="yellow", width=6, justify="right")
         table.add_column("%", style="red", width=4, justify="right")
@@ -230,11 +230,11 @@ class CLIInterface:
         for idx, offender in enumerate(offenders, 1):
             sender_name = self._truncate(offender['sender_name'], 25)
 
-            # Use AI summary if available, otherwise use sample subject
-            about = offender.get('summary', '')
-            if not about and offender['sample_subjects']:
-                about = self._truncate(offender['sample_subjects'][0], 35)
-            about = self._truncate(about, 35) if about else "[dim]No description[/dim]"
+            # Use AI hot take if available, otherwise use sample subject
+            hot_take = offender.get('summary', '')
+            if not hot_take and offender['sample_subjects']:
+                hot_take = self._truncate(offender['sample_subjects'][0], 45)
+            hot_take = self._truncate(hot_take, 45) if hot_take else "[dim]No description[/dim]"
 
             # Format last read
             days_since_read = offender.get('days_since_last_read', 999)
@@ -254,7 +254,7 @@ class CLIInterface:
             table.add_row(
                 str(idx),
                 sender_name,
-                about,
+                hot_take,
                 str(offender['total_emails']),
                 str(offender['unread_emails']),
                 f"{offender['unread_percentage']:.0f}",

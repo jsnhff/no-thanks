@@ -219,14 +219,14 @@ class GmailClient:
 
     def _generate_summary(self, sender_name: str, sample_subjects: List[str]) -> str:
         """
-        Generate a one-sentence summary of what this sender's emails are about.
+        Generate a brutally honest hot take about what this sender actually sends.
 
         Args:
             sender_name: Name of sender
             sample_subjects: List of sample subject lines
 
         Returns:
-            One-sentence summary or empty string if unavailable
+            Hot take summary or empty string if unavailable
         """
         if not self.anthropic_client or not sample_subjects:
             return ""
@@ -236,19 +236,30 @@ class GmailClient:
 
             message = self.anthropic_client.messages.create(
                 model="claude-3-haiku-20240307",
-                max_tokens=100,
+                max_tokens=150,
                 messages=[{
                     "role": "user",
-                    "content": f"""Based on these email subject lines from {sender_name}, write ONE short sentence (max 10 words) describing what this sender sends emails about:
+                    "content": f"""Based on these email subject lines from {sender_name}, give me a brutally honest, no-BS summary of what they actually send (not marketing fluff).
 
+Subject lines:
 {subjects_text}
 
-Just the sentence, nothing else:"""
+In ONE punchy sentence (max 15 words), tell me:
+- What they're really selling/promoting (cut through the marketing speak)
+- Is this likely useful for someone's actual work/life, or just noise?
+
+Be direct and honest. Examples of good responses:
+- "Daily deals on clothing - pure marketing noise"
+- "Code tutorials and dev tools - useful for engineers"
+- "Political fundraising emails - probably not needed"
+- "Product updates for software you use - actually useful"
+
+Your hot take:"""
                 }]
             )
 
             summary = message.content[0].text.strip()
-            return summary if len(summary) < 100 else summary[:97] + "..."
+            return summary if len(summary) < 120 else summary[:117] + "..."
 
         except Exception:
             return ""  # Summaries are optional, don't fail if they don't work
