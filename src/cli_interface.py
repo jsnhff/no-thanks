@@ -216,116 +216,97 @@ class CLIInterface:
 
         self.console.print(f"\n[bold]Found {len(offenders)} subscription(s) you rarely/never read:[/bold]\n")
         self.console.print("[dim]Ranked by staleness & relevance (never/rarely read + time since last read)[/dim]\n")
-        self.console.print("[dim]Review 3 at a time. Mark selections with checkbox syntax: [x] or numbers[/dim]\n")
+        self.console.print("[dim]Review one at a time - Keep or Cut with a knife! 🔪[/dim]\n")
 
-        # Track selected indices across batches
-        selected_indices = set()
+        # Track which to cut
+        to_cut = []
 
-        # Display offenders in batches of 3 with detailed cards
-        batch_size = 3
-        for batch_start in range(0, len(offenders), batch_size):
-            batch = offenders[batch_start:batch_start + batch_size]
+        # Show one card at a time with keep/cut decision
+        for idx, offender in enumerate(offenders, 1):
+            sender_name = offender['sender_name']
+            sender_address = offender['sender_address']
 
-            for idx, offender in enumerate(batch, start=batch_start + 1):
-                sender_name = offender['sender_name']
-                sender_address = offender['sender_address']
+            # Use AI hot take if available, otherwise use sample subject
+            hot_take = offender.get('summary', '')
+            if not hot_take and offender['sample_subjects']:
+                hot_take = offender['sample_subjects'][0]
+            hot_take = hot_take if hot_take else "[dim]No description[/dim]"
 
-                # Use AI hot take if available, otherwise use sample subject
-                hot_take = offender.get('summary', '')
-                if not hot_take and offender['sample_subjects']:
-                    hot_take = offender['sample_subjects'][0]
-                hot_take = hot_take if hot_take else "[dim]No description[/dim]"
+            # Get email content summary (AI-generated) or fallback to subject
+            email_preview = offender.get('email_content_summary', '')
+            if not email_preview and offender['sample_subjects']:
+                email_preview = offender['sample_subjects'][0]
+            email_preview = email_preview if email_preview else "[dim]No preview[/dim]"
 
-                # Get email content summary (AI-generated) or fallback to subject
-                email_preview = offender.get('email_content_summary', '')
-                if not email_preview and offender['sample_subjects']:
-                    email_preview = offender['sample_subjects'][0]
-                email_preview = self._truncate(email_preview, 70) if email_preview else "[dim]No preview[/dim]"
-
-                # Format last read
-                days_since_read = offender.get('days_since_last_read', 999)
-                if days_since_read >= 999:
-                    last_read_str = "Never"
-                elif days_since_read == 0:
-                    last_read_str = "Today"
-                elif days_since_read == 1:
-                    last_read_str = "1 day ago"
-                elif days_since_read < 7:
-                    last_read_str = f"{days_since_read} days ago"
-                elif days_since_read < 30:
-                    weeks = days_since_read // 7
-                    last_read_str = f"{weeks} week{'s' if weeks > 1 else ''} ago"
-                else:
-                    months = days_since_read // 30
-                    last_read_str = f"{months} month{'s' if months > 1 else ''} ago"
-
-                # Check if selected
-                checkbox = "[x]" if idx in selected_indices else "[ ]"
-
-                # Create detailed card for each subscription
-                card_content = (
-                    f"{checkbox} [bold cyan]#{idx}. {sender_name}[/bold cyan]\n"
-                    f"[dim]{sender_address}[/dim]\n\n"
-                    f"[green]🤖 What's their deal?[/green]\n{hot_take}\n\n"
-                    f"[blue]📧 Latest email:[/blue] {email_preview}\n\n"
-                    f"[yellow]📊 Your stats:[/yellow]\n"
-                    f"  • Total: {offender['total_emails']} emails  "
-                    f"• Unread: {offender['unread_emails']} ({offender['unread_percentage']:.0f}%)  "
-                    f"• Last read: {last_read_str}"
-                )
-
-                self.console.print(Panel(
-                    card_content,
-                    border_style="cyan" if idx in selected_indices else "dim",
-                    padding=(1, 2)
-                ))
-
-            # Show pagination prompt between batches with selection option
-            if batch_start + batch_size < len(offenders):
-                remaining = len(offenders) - (batch_start + batch_size)
-                self.console.print(f"\n[dim]─── {remaining} more subscription(s) below ───[/dim]")
-                user_input = self.console.input(
-                    "[cyan]Enter numbers to select (e.g. 1,3), Enter for next 3, or 'done' to finish:[/cyan] "
-                )
-
-                if user_input.lower() in ['done', 'd', 'q']:
-                    self.console.print("[yellow]Finished viewing.[/yellow]\n")
-                    break
-                elif user_input.strip():
-                    # Parse selection
-                    new_selections = self._parse_selection_input(user_input, len(offenders))
-                    selected_indices.update(new_selections)
-                    # Show confirmation
-                    if new_selections:
-                        self.console.print(f"[green]✓ Selected #{', #'.join(map(str, sorted(new_selections)))}[/green]")
-
-                self.console.print()
+            # Format last read
+            days_since_read = offender.get('days_since_last_read', 999)
+            if days_since_read >= 999:
+                last_read_str = "Never"
+            elif days_since_read == 0:
+                last_read_str = "Today"
+            elif days_since_read == 1:
+                last_read_str = "1 day ago"
+            elif days_since_read < 7:
+                last_read_str = f"{days_since_read} days ago"
+            elif days_since_read < 30:
+                weeks = days_since_read // 7
+                last_read_str = f"{weeks} week{'s' if weeks > 1 else ''} ago"
             else:
-                # Last batch - allow final selections
-                user_input = self.console.input(
-                    "[cyan]Enter numbers to select from this batch (or press Enter if done):[/cyan] "
-                )
-                if user_input.strip():
-                    new_selections = self._parse_selection_input(user_input, len(offenders))
-                    selected_indices.update(new_selections)
+                months = days_since_read // 30
+                last_read_str = f"{months} month{'s' if months > 1 else ''} ago"
 
-        self.console.print()
+            # Create detailed card for this subscription
+            card_content = (
+                f"[bold cyan]{sender_name}[/bold cyan]\n"
+                f"[dim]{sender_address}[/dim]\n\n"
+                f"[green]🤖 What's their deal?[/green]\n{hot_take}\n\n"
+                f"[blue]📧 Latest email:[/blue]\n{email_preview}\n\n"
+                f"[yellow]📊 Your stats:[/yellow]\n"
+                f"  • Total: {offender['total_emails']} emails\n"
+                f"  • Unread: {offender['unread_emails']} ({offender['unread_percentage']:.0f}%)\n"
+                f"  • Last read: {last_read_str}"
+            )
 
-        # Convert selected indices to offender objects
-        if not selected_indices:
-            self.console.print("[yellow]No subscriptions selected.[/yellow]")
+            self.console.print(Panel(
+                card_content,
+                title=f"[bold white]Subscription {idx} of {len(offenders)}[/bold white]",
+                border_style="cyan",
+                padding=(1, 2)
+            ))
+
+            # Quick Keep or Cut decision
+            self.console.print()
+            self.console.print("[dim]k[/dim] = keep  |  [dim]c[/dim] = cut 🔪  |  [dim]q[/dim] = quit")
+            choice = Prompt.ask(
+                "[bold cyan]Your choice[/bold cyan]",
+                choices=["keep", "k", "cut", "c", "quit", "q"],
+                default="keep",
+                show_choices=False
+            )
+            self.console.print()
+
+            if choice in ["cut", "c"]:
+                to_cut.append(offender)
+                self.console.print(f"[red]🔪 Marked for cutting[/red] ({len(to_cut)} total)\n")
+            elif choice in ["keep", "k"]:
+                self.console.print(f"[green]✓ Keeping[/green]\n")
+            elif choice in ["quit", "q"]:
+                self.console.print("[yellow]Stopped reviewing. Processing cuts so far...[/yellow]\n")
+                break
+
+        # Show summary if anything was cut
+        if not to_cut:
+            self.console.print("[yellow]No subscriptions marked for cutting.[/yellow]")
             return []
 
-        selected_offenders = [offenders[i - 1] for i in sorted(selected_indices)]
-
-        # Show summary and confirm
-        self.console.print(f"[yellow]You selected {len(selected_offenders)} subscription(s) to unsubscribe from:[/yellow]")
-        for idx in sorted(selected_indices):
-            self.console.print(f"  #{idx}. {offenders[idx - 1]['sender_name']}")
+        # Show summary
+        self.console.print(f"[bold red]🔪 Ready to cut {len(to_cut)} subscription(s):[/bold red]")
+        for offender in to_cut:
+            self.console.print(f"  • {offender['sender_name']}")
 
         self.console.print()
         if Confirm.ask("[bold]Proceed with unsubscribing?[/bold]", default=True):
-            return selected_offenders
+            return to_cut
 
         return []
 
