@@ -216,52 +216,60 @@ class CLIInterface:
 
         self.console.print(f"\n[bold]Found {len(offenders)} subscription(s) you rarely/never read:[/bold]\n")
         self.console.print("[dim]Ranked by staleness & relevance (never/rarely read + time since last read)[/dim]\n")
+        self.console.print("[dim]Showing in batches of 3 for readability...[/dim]\n")
 
-        # Display offenders in a table
-        table = Table(show_header=True, header_style="bold magenta")
-        table.add_column("#", style="dim", width=4)
-        table.add_column("Sender", style="cyan", width=25)
-        table.add_column("Hot Take", style="green", width=45)
-        table.add_column("Total", style="white", width=5, justify="right")
-        table.add_column("Unread", style="yellow", width=6, justify="right")
-        table.add_column("%", style="red", width=4, justify="right")
-        table.add_column("Last Read", style="dim", width=10, justify="right")
+        # Display offenders in batches of 3 with detailed cards
+        batch_size = 3
+        for batch_start in range(0, len(offenders), batch_size):
+            batch = offenders[batch_start:batch_start + batch_size]
 
-        for idx, offender in enumerate(offenders, 1):
-            sender_name = self._truncate(offender['sender_name'], 25)
+            for idx, offender in enumerate(batch, start=batch_start + 1):
+                sender_name = offender['sender_name']
 
-            # Use AI hot take if available, otherwise use sample subject
-            hot_take = offender.get('summary', '')
-            if not hot_take and offender['sample_subjects']:
-                hot_take = self._truncate(offender['sample_subjects'][0], 45)
-            hot_take = self._truncate(hot_take, 45) if hot_take else "[dim]No description[/dim]"
+                # Use AI hot take if available, otherwise use sample subject
+                hot_take = offender.get('summary', '')
+                if not hot_take and offender['sample_subjects']:
+                    hot_take = offender['sample_subjects'][0]
+                hot_take = hot_take if hot_take else "[dim]No description[/dim]"
 
-            # Format last read
-            days_since_read = offender.get('days_since_last_read', 999)
-            if days_since_read >= 999:
-                last_read_str = "Never"
-            elif days_since_read == 0:
-                last_read_str = "Today"
-            elif days_since_read == 1:
-                last_read_str = "1 day"
-            elif days_since_read < 7:
-                last_read_str = f"{days_since_read}d ago"
-            elif days_since_read < 30:
-                last_read_str = f"{days_since_read // 7}w ago"
-            else:
-                last_read_str = f"{days_since_read // 30}mo ago"
+                # Format last read
+                days_since_read = offender.get('days_since_last_read', 999)
+                if days_since_read >= 999:
+                    last_read_str = "Never"
+                elif days_since_read == 0:
+                    last_read_str = "Today"
+                elif days_since_read == 1:
+                    last_read_str = "1 day ago"
+                elif days_since_read < 7:
+                    last_read_str = f"{days_since_read} days ago"
+                elif days_since_read < 30:
+                    weeks = days_since_read // 7
+                    last_read_str = f"{weeks} week{'s' if weeks > 1 else ''} ago"
+                else:
+                    months = days_since_read // 30
+                    last_read_str = f"{months} month{'s' if months > 1 else ''} ago"
 
-            table.add_row(
-                str(idx),
-                sender_name,
-                hot_take,
-                str(offender['total_emails']),
-                str(offender['unread_emails']),
-                f"{offender['unread_percentage']:.0f}",
-                last_read_str
-            )
+                # Create detailed card for each subscription
+                card_content = (
+                    f"[bold cyan]#{idx}. {sender_name}[/bold cyan]\n\n"
+                    f"[green]🤖 Hot Take:[/green] {hot_take}\n\n"
+                    f"[yellow]📊 Stats:[/yellow]\n"
+                    f"  • Total emails: {offender['total_emails']}\n"
+                    f"  • Unread: {offender['unread_emails']} ({offender['unread_percentage']:.0f}%)\n"
+                    f"  • Last read: {last_read_str}"
+                )
 
-        self.console.print(table)
+                self.console.print(Panel(
+                    card_content,
+                    border_style="dim",
+                    padding=(1, 2)
+                ))
+
+            # Show pagination info between batches
+            if batch_start + batch_size < len(offenders):
+                remaining = len(offenders) - (batch_start + batch_size)
+                self.console.print(f"\n[dim]─── {remaining} more subscription(s) below ───[/dim]\n")
+
         self.console.print()
 
         # Get user selection
