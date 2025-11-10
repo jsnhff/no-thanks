@@ -13,6 +13,7 @@ from src.gmail_client import GmailClient
 from src.cli_interface import CLIInterface
 from src.unsubscribe_agent import unsubscribe_from_emails
 from src.database import UnsubscribeDatabase
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
 
 class GmailUnsubscriber:
@@ -83,15 +84,37 @@ class GmailUnsubscriber:
         self.cli.display_welcome()
         self.cli.display_info("Successfully authenticated!\n")
 
-        # Analyze reading patterns
-        self.cli.display_info(f"Analyzing your email reading patterns over the last {days_back} days...")
-        self.cli.display_info("This may take a moment...\n")
+        # Analyze reading patterns with progress bar
+        self.cli.display_info(f"Analyzing your email reading patterns over the last {days_back} days...\n")
 
-        worst_offenders = self.gmail.analyze_reading_patterns(
-            days_back=days_back,
-            max_emails=self.max_emails * 10,  # Analyze more emails for better patterns
-            update_db=True  # Keep reading patterns fresh each time
-        )
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=self.cli.console
+        ) as progress:
+            fetch_task = progress.add_task("[cyan]Fetching emails...", total=None)
+            ai_task = progress.add_task("[green]Generating AI hot takes...", total=None, visible=False)
+
+            def update_progress(stage, current, total):
+                if stage == 'fetch':
+                    if progress.tasks[fetch_task].total is None:
+                        progress.update(fetch_task, total=total)
+                    progress.update(fetch_task, completed=current)
+                elif stage == 'ai':
+                    if not progress.tasks[ai_task].visible:
+                        progress.update(ai_task, visible=True, total=total)
+                    progress.update(ai_task, completed=current)
+
+            worst_offenders = self.gmail.analyze_reading_patterns(
+                days_back=days_back,
+                max_emails=self.max_emails * 10,  # Analyze more emails for better patterns
+                update_db=True,  # Keep reading patterns fresh each time
+                progress_callback=update_progress
+            )
+
+        self.cli.console.print()
 
         if not worst_offenders:
             self.cli.display_info("No subscriptions found that match the criteria.")

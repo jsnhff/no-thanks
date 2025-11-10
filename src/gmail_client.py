@@ -290,7 +290,7 @@ Your hot take:"""
             return ""  # Summaries are optional, don't fail if they don't work
 
     def analyze_reading_patterns(self, days_back: int = 90, max_emails: int = 500,
-                                update_db: bool = False) -> List[Dict]:
+                                update_db: bool = False, progress_callback=None) -> List[Dict]:
         """
         Analyze email reading patterns to identify worst offenders.
 
@@ -337,8 +337,12 @@ Your hot take:"""
             ).execute()
 
             messages = results.get('messages', [])
+            total_messages = len(messages)
 
-            for message in messages:
+            for idx, message in enumerate(messages, 1):
+                if progress_callback:
+                    progress_callback('fetch', idx, total_messages)
+
                 # Get message details
                 msg = self.service.users().messages().get(
                     userId='me',
@@ -448,6 +452,8 @@ Your hot take:"""
 
                 # Generate AI summary for this sender
                 if stats['sample_subjects']:
+                    if progress_callback:
+                        progress_callback('ai', len(worst_offenders) + 1, len(sender_stats))
                     stats['summary'] = self._generate_summary(
                         stats['sender_name'],
                         stats['sample_subjects']
