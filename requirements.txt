@@ -5,4 +5,4 @@ playwright==1.48.0
 python-dotenv==1.0.0
 rich==13.7.0
 flask==3.0.0
-anthropic==0.39.0
+anthropic>=0.72.0
