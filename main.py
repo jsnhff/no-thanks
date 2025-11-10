@@ -183,6 +183,7 @@ class GmailUnsubscriber:
         total = len(emails)
         successful = 0
         failed = 0
+        failed_items = []
 
         self.cli.display_info(f"\nProcessing {total} unsubscribe request(s)...\n")
 
@@ -225,9 +226,19 @@ class GmailUnsubscriber:
                 successful += 1
             else:
                 failed += 1
+                # Collect failed items for manual action
+                failed_items.append({
+                    'sender': sender_name or sender_address,
+                    'email': sender_address,
+                    'links': email.get('unsubscribe_links', [])
+                })
 
         # Display summary
         self.cli.display_summary(total, successful, failed)
+
+        # Show manual unsubscribe links for failed attempts
+        if failed_items:
+            self.cli.display_manual_unsubscribe_links(failed_items)
 
     def _show_statistics(self):
         """Show overall statistics from database."""

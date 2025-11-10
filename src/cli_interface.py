@@ -182,6 +182,39 @@ class CLIInterface:
 
         self.console.print(Panel(summary, border_style="cyan"))
 
+    def display_manual_unsubscribe_links(self, failed_items: List[Dict]):
+        """Display links for manual unsubscribe of failed attempts."""
+        if not failed_items:
+            return
+
+        self.console.print()
+        self.console.print(Panel(
+            "[bold yellow]⚠️  Manual Action Required[/bold yellow]\n\n"
+            f"The following {len(failed_items)} subscription(s) couldn't be unsubscribed automatically.\n"
+            "They may require CAPTCHA, login, or have complex unsubscribe flows.\n\n"
+            "[dim]Click the links below to unsubscribe manually:[/dim]",
+            border_style="yellow",
+            padding=(1, 2)
+        ))
+
+        for item in failed_items:
+            sender = item.get('sender', 'Unknown')
+            email = item.get('email', '')
+            links = item.get('links', [])
+
+            self.console.print(f"\n[bold cyan]• {sender}[/bold cyan]")
+            if email:
+                self.console.print(f"  [dim]{email}[/dim]")
+
+            if links:
+                for idx, link in enumerate(links, 1):
+                    # Make links clickable in terminal
+                    self.console.print(f"  [link={link}]Link {idx}: {self._truncate(link, 80)}[/link]")
+            else:
+                self.console.print("  [red]No unsubscribe link found - may need to contact sender[/red]")
+
+        self.console.print()
+
     def display_error(self, message: str):
         """Display an error message."""
         self.console.print(f"[red bold]Error:[/red bold] {message}")
