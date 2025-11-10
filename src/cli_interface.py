@@ -236,11 +236,11 @@ class CLIInterface:
                     hot_take = offender['sample_subjects'][0]
                 hot_take = hot_take if hot_take else "[dim]No description[/dim]"
 
-                # Get sample subject for preview
-                sample_subject = ""
-                if offender['sample_subjects']:
-                    sample_subject = offender['sample_subjects'][0]
-                    sample_subject = self._truncate(sample_subject, 60)
+                # Get email content summary (AI-generated) or fallback to subject
+                email_preview = offender.get('email_content_summary', '')
+                if not email_preview and offender['sample_subjects']:
+                    email_preview = offender['sample_subjects'][0]
+                email_preview = self._truncate(email_preview, 70) if email_preview else "[dim]No preview[/dim]"
 
                 # Format last read
                 days_since_read = offender.get('days_since_last_read', 999)
@@ -267,7 +267,7 @@ class CLIInterface:
                     f"{checkbox} [bold cyan]#{idx}. {sender_name}[/bold cyan]\n"
                     f"[dim]{sender_address}[/dim]\n\n"
                     f"[green]🤖 What's their deal?[/green]\n{hot_take}\n\n"
-                    f"[blue]📧 Sample email:[/blue] [dim]{sample_subject}[/dim]\n\n"
+                    f"[blue]📧 Latest email:[/blue] {email_preview}\n\n"
                     f"[yellow]📊 Your stats:[/yellow]\n"
                     f"  • Total: {offender['total_emails']} emails  "
                     f"• Unread: {offender['unread_emails']} ({offender['unread_percentage']:.0f}%)  "

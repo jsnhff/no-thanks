@@ -228,6 +228,48 @@ class GmailClient:
 
         return unique_links
 
+    def _summarize_email_content(self, snippet: str, subject: str) -> str:
+        """
+        Generate a one-sentence summary of what's IN this specific email.
+
+        Args:
+            snippet: Email body preview/snippet
+            subject: Email subject line
+
+        Returns:
+            One-sentence summary of email content
+        """
+        if not self.anthropic_client or not snippet:
+            return ""
+
+        try:
+            message = self.anthropic_client.messages.create(
+                model="claude-3-haiku-20240307",
+                max_tokens=100,
+                messages=[{
+                    "role": "user",
+                    "content": f"""Summarize what's actually IN this email in one short sentence (max 12 words).
+
+Subject: {subject}
+Content: {snippet[:300]}
+
+What are they saying/offering/promoting in THIS specific email? Be concrete.
+
+Examples:
+- "Recipe for beef stew with winter vegetables"
+- "50% off sale on winter jackets, ends tonight"
+- "Weekly roundup of design articles and trends"
+- "New feature announcement: dark mode support"
+
+Your summary:"""
+                }]
+            )
+
+            return message.content[0].text.strip()
+
+        except Exception:
+            return ""  # Summaries are optional
+
     def _generate_summary(self, sender_name: str, sample_subjects: List[str]) -> str:
         """
         Generate a brutally honest, personalized hot take about what this sender actually sends.
@@ -396,12 +438,24 @@ Your assessment:"""
                 if list_unsubscribe or 'unsubscribe' in subject.lower():
                     stats['has_unsubscribe'] = True
 
-                    # Try to get unsubscribe link from latest email
+                    # Try to get unsubscribe link AND body content from latest email
                     if not stats['latest_unsubscribe_links']:
                         body = self._get_email_body(msg['payload'])
                         links = self._find_unsubscribe_links(body, list_unsubscribe)
                         if links:
                             stats['latest_unsubscribe_links'] = links
+                            # Store snippet/body for AI summary later
+                            # Use Gmail's snippet (preview text) or extract from body
+                            snippet = msg.get('snippet', '')
+                            if snippet:
+                                stats['latest_email_snippet'] = snippet
+                            else:
+                                # Extract text from body (strip HTML)
+                                import html
+                                import re
+                                clean_text = re.sub('<[^<]+?>', '', body)
+                                clean_text = html.unescape(clean_text)
+                                stats['latest_email_snippet'] = clean_text[:500]  # First 500 chars
 
         except Exception as e:
             print(f"Error analyzing reading patterns: {e}")
@@ -451,14 +505,23 @@ Your assessment:"""
                         stats['unread_emails']
                     )
 
-                # Generate AI summary for this sender
+                # Generate AI summaries for this sender
                 if stats['sample_subjects']:
                     if progress_callback:
                         progress_callback('ai', len(worst_offenders) + 1, len(sender_stats))
+
+                    # Generate overall sender assessment
                     stats['summary'] = self._generate_summary(
                         stats['sender_name'],
                         stats['sample_subjects']
                     )
+
+                    # Generate specific email content summary
+                    if stats.get('latest_email_snippet') and stats['sample_subjects']:
+                        stats['email_content_summary'] = self._summarize_email_content(
+                            stats['latest_email_snippet'],
+                            stats['sample_subjects'][0]
+                        )
 
                 # Only include senders with unsubscribe links and at least 3 emails
                 if stats['has_unsubscribe'] and stats['total_emails'] >= 3:
