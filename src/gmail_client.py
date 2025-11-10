@@ -464,7 +464,21 @@ Your assessment:"""
         worst_offenders = []
         now = datetime.now().timestamp() * 1000  # Convert to milliseconds
 
+        # Get list of already unsubscribed senders to filter out
+        already_unsubscribed = set()
+        if update_db:
+            from src.database import UnsubscribeDatabase
+            db = UnsubscribeDatabase()
+            unsubscribed_list = db.get_all_unsubscribed()
+            already_unsubscribed = {s['sender_address'] for s in unsubscribed_list}
+
+        ai_progress_count = 0
+        total_to_process = len([s for s in sender_stats.values() if s.get('sample_subjects')])
+
         for sender_address, stats in sender_stats.items():
+            # Skip if already unsubscribed
+            if sender_address in already_unsubscribed:
+                continue
             if stats['total_emails'] > 0:
                 stats['unread_percentage'] = (stats['unread_emails'] / stats['total_emails']) * 100
 
@@ -507,8 +521,9 @@ Your assessment:"""
 
                 # Generate AI summaries for this sender
                 if stats['sample_subjects']:
+                    ai_progress_count += 1
                     if progress_callback:
-                        progress_callback('ai', len(worst_offenders) + 1, len(sender_stats))
+                        progress_callback('ai', ai_progress_count, total_to_process)
 
                     # Generate overall sender assessment
                     stats['summary'] = self._generate_summary(

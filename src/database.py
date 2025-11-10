@@ -292,6 +292,21 @@ class UnsubscribeDatabase:
             result = cursor.fetchone()
             return result['count'] > 0
 
+    def get_all_unsubscribed(self) -> List[Dict]:
+        """
+        Get all subscriptions that have been unsubscribed.
+
+        Returns:
+            List of unsubscribed subscription dictionaries
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT * FROM subscriptions
+                WHERE unsubscribe_status = 'unsubscribed'
+            ''')
+            return [dict(row) for row in cursor.fetchall()]
+
     def get_subscription_by_sender(self, sender_address: str) -> Optional[Dict]:
         """
         Get subscription details by sender address.
