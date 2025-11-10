@@ -49,7 +49,7 @@ playwright install chromium
 
 ### 5. (Optional) Set up Anthropic API for AI Summaries
 
-If you want AI-powered one-sentence summaries of what each sender's emails are about:
+If you want AI-powered brutally honest hot takes about what each sender actually sends:
 
 1. Get an API key at [Anthropic Console](https://console.anthropic.com/)
 2. Create a `.env` file (copy from `.env.example`):
@@ -61,7 +61,20 @@ If you want AI-powered one-sentence summaries of what each sender's emails are a
    ANTHROPIC_API_KEY=your-api-key-here
    ```
 
-This is **optional** - the app works fine without it, you just won't see the AI summaries in the table.
+This is **optional** - the app works fine without it, you just won't see the AI hot takes in the table.
+
+**Want personalized recommendations?** Create a `user_profile.json` file:
+
+```bash
+cp user_profile.example.json user_profile.json
+```
+
+Edit it with your interests, goals, and inbox preferences. The AI will use this to give you personalized hot takes like:
+- "Design leadership insights - matches your role perfectly"
+- "E-commerce deals - not relevant to your work"
+- "AI/tech newsletters - aligns with your interests"
+
+Without a profile, it gives generic assessments. With a profile, it's tailored to YOU.
 
 ### 6. Set up Gmail API credentials
 

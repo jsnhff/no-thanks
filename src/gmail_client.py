@@ -14,6 +14,7 @@ import re
 import base64
 import anthropic
 import os
+import json
 
 # Gmail API scopes
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
@@ -27,6 +28,16 @@ class GmailClient:
         self.token_path = token_path
         self.service = None
         self.anthropic_client = None
+        self.user_profile = None
+
+        # Load user profile if available
+        try:
+            profile_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'user_profile.json')
+            if os.path.exists(profile_path):
+                with open(profile_path, 'r') as f:
+                    self.user_profile = json.load(f)
+        except:
+            pass  # Profile is optional
 
         # Initialize Anthropic if API key is available
         api_key = os.getenv('ANTHROPIC_API_KEY')
@@ -219,7 +230,7 @@ class GmailClient:
 
     def _generate_summary(self, sender_name: str, sample_subjects: List[str]) -> str:
         """
-        Generate a brutally honest hot take about what this sender actually sends.
+        Generate a brutally honest, personalized hot take about what this sender actually sends.
 
         Args:
             sender_name: Name of sender
@@ -234,6 +245,20 @@ class GmailClient:
         try:
             subjects_text = "\n".join([f"- {s}" for s in sample_subjects[:5]])
 
+            # Build personalized context if profile is available
+            user_context = ""
+            if self.user_profile:
+                interests = ", ".join(self.user_profile.get("interests", [])[:5])
+                high_value = ", ".join(self.user_profile.get("inbox_preferences", {}).get("high_value_sources", [])[:3])
+                low_value = ", ".join(self.user_profile.get("inbox_preferences", {}).get("low_value_sources", [])[:3])
+
+                user_context = f"""
+User context:
+- Key interests: {interests}
+- Values: {high_value}
+- Dislikes: {low_value}
+"""
+
             message = self.anthropic_client.messages.create(
                 model="claude-3-haiku-20240307",
                 max_tokens=150,
@@ -243,16 +268,16 @@ class GmailClient:
 
 Subject lines:
 {subjects_text}
-
+{user_context}
 In ONE punchy sentence (max 15 words), tell me:
 - What they're really selling/promoting (cut through the marketing speak)
-- Is this likely useful for someone's actual work/life, or just noise?
+- Is this useful FOR THIS SPECIFIC USER, or just noise?
 
-Be direct and honest. Examples of good responses:
+Be direct and honest. Tailor your response to the user's interests and values. Examples:
 - "Daily deals on clothing - pure marketing noise"
 - "Code tutorials and dev tools - useful for engineers"
 - "Political fundraising emails - probably not needed"
-- "Product updates for software you use - actually useful"
+- "Design leadership insights - matches your role perfectly"
 
 Your hot take:"""
                 }]

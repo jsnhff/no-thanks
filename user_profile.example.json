@@ -1,0 +1,53 @@
+{
+  "persona": {
+    "name": "Your Name",
+    "roles": [
+      "Your primary role",
+      "Your secondary role",
+      "Your tertiary role"
+    ],
+    "summary": "A brief summary of who you are, what you do, and what matters to you."
+  },
+  "core_values": {
+    "primary_value": "Your most important value when it comes to email and communication.",
+    "secondary_values": [
+      "Other values that guide your inbox preferences",
+      "What kind of content you appreciate",
+      "What qualities matter in communication"
+    ]
+  },
+  "interests": [
+    "Professional interests",
+    "Technical interests",
+    "Personal interests",
+    "Hobbies and passions"
+  ],
+  "active_projects": [
+    "Current projects you're working on",
+    "Side projects",
+    "Ongoing initiatives"
+  ],
+  "inbox_preferences": {
+    "highest_value": "What kind of emails matter most to you (e.g., genuine human communication, work-related updates).",
+    "high_value_sources": [
+      "Types of emails you always want to see",
+      "Senders or topics that are valuable",
+      "Content that helps your work or life"
+    ],
+    "low_value_sources": [
+      "Types of emails that waste your time",
+      "Marketing categories you avoid",
+      "Automated content you don't need"
+    ]
+  },
+  "current_goals_q4_2025": [
+    "Your current goals and priorities",
+    "What you're working toward",
+    "Areas of focus for growth"
+  ],
+  "recommendation_heuristics": {
+    "keep": "Criteria for emails to keep: what makes something valuable to you?",
+    "review": "What deserves a second look before deciding?",
+    "cut": "What should definitely be unsubscribed: clear criteria for noise."
+  }
+}

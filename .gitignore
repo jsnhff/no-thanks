@@ -17,6 +17,9 @@ unsubscribe_history.db
 # Environment
 .env
 
+# User profile (contains personal info)
+user_profile.json
+
 # IDE
 .vscode/
 .idea/
