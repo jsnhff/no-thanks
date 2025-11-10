@@ -216,7 +216,10 @@ class CLIInterface:
 
         self.console.print(f"\n[bold]Found {len(offenders)} subscription(s) you rarely/never read:[/bold]\n")
         self.console.print("[dim]Ranked by staleness & relevance (never/rarely read + time since last read)[/dim]\n")
-        self.console.print("[dim]Showing in batches of 3 for readability...[/dim]\n")
+        self.console.print("[dim]Review 3 at a time. Mark selections with checkbox syntax: [x] or numbers[/dim]\n")
+
+        # Track selected indices across batches
+        selected_indices = set()
 
         # Display offenders in batches of 3 with detailed cards
         batch_size = 3
@@ -225,12 +228,19 @@ class CLIInterface:
 
             for idx, offender in enumerate(batch, start=batch_start + 1):
                 sender_name = offender['sender_name']
+                sender_address = offender['sender_address']
 
                 # Use AI hot take if available, otherwise use sample subject
                 hot_take = offender.get('summary', '')
                 if not hot_take and offender['sample_subjects']:
                     hot_take = offender['sample_subjects'][0]
                 hot_take = hot_take if hot_take else "[dim]No description[/dim]"
+
+                # Get sample subject for preview
+                sample_subject = ""
+                if offender['sample_subjects']:
+                    sample_subject = offender['sample_subjects'][0]
+                    sample_subject = self._truncate(sample_subject, 60)
 
                 # Format last read
                 days_since_read = offender.get('days_since_last_read', 999)
@@ -249,37 +259,101 @@ class CLIInterface:
                     months = days_since_read // 30
                     last_read_str = f"{months} month{'s' if months > 1 else ''} ago"
 
+                # Check if selected
+                checkbox = "[x]" if idx in selected_indices else "[ ]"
+
                 # Create detailed card for each subscription
                 card_content = (
-                    f"[bold cyan]#{idx}. {sender_name}[/bold cyan]\n\n"
+                    f"{checkbox} [bold cyan]#{idx}. {sender_name}[/bold cyan]\n"
+                    f"[dim]{sender_address}[/dim]\n\n"
                     f"[green]🤖 What's their deal?[/green]\n{hot_take}\n\n"
+                    f"[blue]📧 Sample email:[/blue] [dim]{sample_subject}[/dim]\n\n"
                     f"[yellow]📊 Your stats:[/yellow]\n"
-                    f"  • Total emails: {offender['total_emails']}\n"
-                    f"  • Unread: {offender['unread_emails']} ({offender['unread_percentage']:.0f}%)\n"
-                    f"  • Last read: {last_read_str}"
+                    f"  • Total: {offender['total_emails']} emails  "
+                    f"• Unread: {offender['unread_emails']} ({offender['unread_percentage']:.0f}%)  "
+                    f"• Last read: {last_read_str}"
                 )
 
                 self.console.print(Panel(
                     card_content,
-                    border_style="dim",
+                    border_style="cyan" if idx in selected_indices else "dim",
                     padding=(1, 2)
                 ))
 
-            # Show pagination prompt between batches
+            # Show pagination prompt between batches with selection option
             if batch_start + batch_size < len(offenders):
                 remaining = len(offenders) - (batch_start + batch_size)
                 self.console.print(f"\n[dim]─── {remaining} more subscription(s) below ───[/dim]")
-                user_input = self.console.input("[cyan]Press Enter to see next 3 (or 'q' to stop)[/cyan] ")
-                if user_input.lower() == 'q':
-                    self.console.print("[yellow]Stopped viewing. You can still select from all subscriptions shown above.[/yellow]\n")
+                user_input = self.console.input(
+                    "[cyan]Enter numbers to select (e.g. 1,3), Enter for next 3, or 'done' to finish:[/cyan] "
+                )
+
+                if user_input.lower() in ['done', 'd', 'q']:
+                    self.console.print("[yellow]Finished viewing.[/yellow]\n")
                     break
+                elif user_input.strip():
+                    # Parse selection
+                    new_selections = self._parse_selection_input(user_input, len(offenders))
+                    selected_indices.update(new_selections)
+                    # Show confirmation
+                    if new_selections:
+                        self.console.print(f"[green]✓ Selected #{', #'.join(map(str, sorted(new_selections)))}[/green]")
+
                 self.console.print()
+            else:
+                # Last batch - allow final selections
+                user_input = self.console.input(
+                    "[cyan]Enter numbers to select from this batch (or press Enter if done):[/cyan] "
+                )
+                if user_input.strip():
+                    new_selections = self._parse_selection_input(user_input, len(offenders))
+                    selected_indices.update(new_selections)
 
         self.console.print()
 
-        # Get user selection
-        approved = self._get_user_selection_offenders(offenders)
-        return approved
+        # Convert selected indices to offender objects
+        if not selected_indices:
+            self.console.print("[yellow]No subscriptions selected.[/yellow]")
+            return []
+
+        selected_offenders = [offenders[i - 1] for i in sorted(selected_indices)]
+
+        # Show summary and confirm
+        self.console.print(f"[yellow]You selected {len(selected_offenders)} subscription(s) to unsubscribe from:[/yellow]")
+        for idx in sorted(selected_indices):
+            self.console.print(f"  #{idx}. {offenders[idx - 1]['sender_name']}")
+
+        self.console.print()
+        if Confirm.ask("[bold]Proceed with unsubscribing?[/bold]", default=True):
+            return selected_offenders
+
+        return []
+
+    def _parse_selection_input(self, selection: str, max_index: int) -> set:
+        """Parse user selection input like '1,3,5' or '1-3'."""
+        indices = set()
+        parts = selection.split(',')
+
+        for part in parts:
+            part = part.strip()
+            if '-' in part:
+                try:
+                    start, end = part.split('-')
+                    start_idx = int(start.strip())
+                    end_idx = int(end.strip())
+                    if 1 <= start_idx <= max_index and 1 <= end_idx <= max_index:
+                        indices.update(range(start_idx, end_idx + 1))
+                except ValueError:
+                    continue
+            else:
+                try:
+                    idx = int(part)
+                    if 1 <= idx <= max_index:
+                        indices.add(idx)
+                except ValueError:
+                    continue
+
+        return indices
 
     def _get_user_selection_offenders(self, offenders: List[Dict]) -> List[Dict]:
         """Get user selection of which offenders to unsubscribe from."""
