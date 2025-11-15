@@ -48,9 +48,18 @@ class GmailUnsubscriber:
 
         # Main loop
         while True:
-            # Scan for emails
-            self.cli.display_info(f"Scanning for emails with unsubscribe links (max {self.max_emails})...")
-            emails = self.gmail.find_emails_with_unsubscribe(max_results=self.max_emails)
+            # Scan for emails with progress indicator
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=self.cli.console
+            ) as progress:
+                scan_task = progress.add_task(
+                    f"[cyan]Scanning for emails with unsubscribe links (max {self.max_emails})...",
+                    total=None
+                )
+                emails = self.gmail.find_emails_with_unsubscribe(max_results=self.max_emails)
+                progress.update(scan_task, completed=True)
 
             # Filter out already processed emails
             emails = [email for email in emails if not self.db.is_already_processed(email['id'])]
@@ -61,7 +70,7 @@ class GmailUnsubscriber:
                     break
                 continue
 
-            self.cli.display_scan_progress(len(emails))
+            self.cli.display_info(f"✓ Found {len(emails)} email(s) with unsubscribe links\n")
 
             # Get user approval
             approved_emails = self.cli.display_emails(emails)
@@ -194,56 +203,67 @@ class GmailUnsubscriber:
         failed = 0
         failed_items = []
 
-        self.cli.display_info(f"\nProcessing {total} unsubscribe request(s)...\n")
-
         # Use override if provided, otherwise use instance setting
         use_headless = override_headless if override_headless is not None else self.headless
 
-        # Unsubscribe from each email (pass database for learning)
-        results = await unsubscribe_from_emails(emails, headless=use_headless, db=self.db)
-
-        for idx, result in enumerate(results, 1):
-            email = result['email']
-            success = result['success']
-            message = result['message']
-
-            # Display progress
-            self.cli.display_unsubscribe_progress(idx, total, email)
-
-            # Extract sender info
-            sender_name, sender_address = parseaddr(email['from'])
-
-            # Add subscription to database
-            subscription_id = self.db.add_subscription(sender_address, sender_name)
-
-            # Get first unsubscribe link for recording
-            unsubscribe_link = email['unsubscribe_links'][0] if email['unsubscribe_links'] else ''
-
-            # Record attempt
-            self.db.record_unsubscribe_attempt(
-                subscription_id,
-                email['id'],
-                unsubscribe_link,
-                success,
-                message
+        # Unsubscribe from each email with progress bar
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=self.cli.console
+        ) as progress:
+            unsub_task = progress.add_task(
+                f"[cyan]Processing {total} unsubscribe request(s)...",
+                total=total
             )
 
-            # Record link pattern result for learning
-            self.db.record_link_pattern_result(unsubscribe_link, success)
+            # Unsubscribe from each email (pass database for learning)
+            results = await unsubscribe_from_emails(emails, headless=use_headless, db=self.db)
 
-            # Display result
-            self.cli.display_unsubscribe_result(email, success, message)
+            for idx, result in enumerate(results, 1):
+                email = result['email']
+                success = result['success']
+                message = result['message']
 
-            if success:
-                successful += 1
-            else:
-                failed += 1
-                # Collect failed items for manual action
-                failed_items.append({
-                    'sender': sender_name or sender_address,
-                    'email': sender_address,
-                    'links': email.get('unsubscribe_links', [])
-                })
+                # Update progress bar
+                progress.update(unsub_task, completed=idx)
+
+                # Extract sender info
+                sender_name, sender_address = parseaddr(email['from'])
+
+                # Add subscription to database
+                subscription_id = self.db.add_subscription(sender_address, sender_name)
+
+                # Get first unsubscribe link for recording
+                unsubscribe_link = email['unsubscribe_links'][0] if email['unsubscribe_links'] else ''
+
+                # Record attempt
+                self.db.record_unsubscribe_attempt(
+                    subscription_id,
+                    email['id'],
+                    unsubscribe_link,
+                    success,
+                    message
+                )
+
+                # Record link pattern result for learning
+                self.db.record_link_pattern_result(unsubscribe_link, success)
+
+                # Display result
+                self.cli.display_unsubscribe_result(email, success, message)
+
+                if success:
+                    successful += 1
+                else:
+                    failed += 1
+                    # Collect failed items for manual action
+                    failed_items.append({
+                        'sender': sender_name or sender_address,
+                        'email': sender_address,
+                        'links': email.get('unsubscribe_links', [])
+                    })
 
         # Display summary
         self.cli.display_summary(total, successful, failed)
