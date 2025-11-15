@@ -343,6 +343,168 @@ class CLIInterface:
 
         return []
 
+    def display_chief_of_staff_report(self, analysis: Dict, trends: List[Dict] = None):
+        """Display the Chief of Staff inbox intelligence report."""
+        if not analysis:
+            self.console.print("[red]No analysis data available[/red]")
+            return
+
+        period = analysis.get('period_days', 30)
+        total_emails = analysis.get('total_emails', 0)
+
+        # Header with trends indicator
+        trend_indicator = ""
+        if trends and len(trends) >= 2:
+            current_signal = analysis.get('goal_alignment', {}).get('inbox_composition_signal_pct', 0)
+            prev_signal = trends[1]['signal_percentage'] if len(trends) > 1 else current_signal
+            diff = current_signal - prev_signal
+
+            if diff > 0:
+                trend_indicator = f"  [green]↑ +{diff:.1f}% signal vs last time[/green]"
+            elif diff < 0:
+                trend_indicator = f"  [red]↓ {diff:.1f}% signal vs last time[/red]"
+            else:
+                trend_indicator = f"  [yellow]→ No change vs last time[/yellow]"
+
+        self.console.print()
+        self.console.print(Panel(
+            f"[bold cyan]Chief of Staff Inbox Report[/bold cyan]\n\n"
+            f"[dim]Analysis Period: Last {period} days | Total Emails: {total_emails}[/dim]"
+            f"{trend_indicator}",
+            border_style="cyan",
+            padding=(1, 2)
+        ))
+
+        # VIP Relationship Insights
+        vip_insights = analysis.get('vip_insights', {})
+        if vip_insights:
+            self.console.print()
+            self.console.print("[bold yellow]👥 VIP RELATIONSHIP TRACKER[/bold yellow]")
+            self.console.print(f"[dim]Tracking your most important relationships[/dim]\n")
+
+            vips = vip_insights.get('vips', [])
+            if vips:
+                table = Table(show_header=True, header_style="bold magenta", box=None)
+                table.add_column("Person", style="cyan", width=30)
+                table.add_column("Tier", style="yellow", width=12)
+                table.add_column("Emails", style="white", width=8)
+                table.add_column("Unread", style="red", width=8)
+                table.add_column("Status", style="green", width=30)
+
+                for vip in vips[:10]:  # Top 10
+                    name = vip['sender_name'] or vip['sender_address']
+                    tier = vip['relationship_tier'].title()
+                    total = vip['total_emails']
+                    unread = vip['unread_count']
+
+                    # Status message
+                    days_since = vip.get('days_since_last_email', 0)
+                    if unread > 3:
+                        status = f"⚠️  {unread} emails need attention"
+                    elif days_since > 14:
+                        status = f"💤 Last email {days_since}d ago"
+                    else:
+                        status = "✓ Engaged"
+
+                    table.add_row(
+                        self._truncate(name, 30),
+                        tier,
+                        str(total),
+                        str(unread) if unread > 0 else "-",
+                        status
+                    )
+
+                self.console.print(table)
+
+                # Show clickable links for VIPs with unread emails
+                vips_with_unread = [v for v in vips[:10] if v['unread_count'] > 0 and v.get('unread_email_ids')]
+                if vips_with_unread:
+                    self.console.print("\n[dim]Quick Links (click to open in Gmail):[/dim]")
+                    for vip in vips_with_unread[:5]:  # Top 5 with unread
+                        name = self._truncate(vip['sender_name'] or vip['sender_address'], 30)
+                        email_ids = vip.get('unread_email_ids', [])
+                        if email_ids:
+                            link = f"https://mail.google.com/mail/u/0/#inbox/{email_ids[0]}"
+                            self.console.print(f"  • {name}: [link={link}]Open unread email[/link]")
+            else:
+                self.console.print("[dim]No VIPs identified yet[/dim]")
+
+        # Signal vs Noise Analysis
+        self.console.print()
+        noise_analysis = analysis.get('noise_analysis', {})
+        if noise_analysis:
+            self.console.print("[bold yellow]🧹 SIGNAL vs NOISE ANALYSIS[/bold yellow]")
+            self.console.print(f"[dim]Quantifying the clutter in your inbox[/dim]\n")
+
+            signal = noise_analysis.get('signal_count', 0)
+            noise = noise_analysis.get('noise_count', 0)
+            noise_pct = noise_analysis.get('noise_percentage', 0)
+            time_wasted = noise_analysis.get('estimated_time_wasted_hours', 0)
+
+            self.console.print(f"  📊 Inbox Composition: [green]{signal} signal[/green] | [red]{noise} noise[/red] ([red]{noise_pct}%[/red])")
+            self.console.print(f"  ⏱️  Estimated Time Wasted: [yellow]{time_wasted} hours[/yellow] this period")
+            self.console.print(f"  💡 Potential Monthly Savings: [cyan]{round(time_wasted * (30/analysis['period_days']), 1)} hours/month[/cyan]\n")
+
+            worst = noise_analysis.get('worst_offenders', [])
+            if worst:
+                self.console.print("[dim]Top Noise Offenders:[/dim]")
+                for idx, offender in enumerate(worst[:5], 1):
+                    self.console.print(f"  {idx}. {offender['sender']} ([red]{offender['count']} emails[/red])")
+
+        # Goal Alignment
+        self.console.print()
+        goal_alignment = analysis.get('goal_alignment', {})
+        if goal_alignment:
+            self.console.print("[bold yellow]🎯 GOAL ALIGNMENT CHECK[/bold yellow]")
+            self.console.print(f"[dim]How your inbox is helping/hurting your Q4 2025 goals[/dim]\n")
+
+            email_debt = goal_alignment.get('email_debt_score', 0)
+            vips_pending = goal_alignment.get('vips_needing_response', 0)
+            signal_pct = goal_alignment.get('inbox_composition_signal_pct', 0)
+
+            self.console.print(f"  📬 Email Debt Score: [{'red' if email_debt > 15 else 'yellow' if email_debt > 5 else 'green'}]{email_debt} VIP emails unread[/{'red' if email_debt > 15 else 'yellow' if email_debt > 5 else 'green'}]")
+            self.console.print(f"  ✉️  VIPs Needing Response: [yellow]{vips_pending}[/yellow]")
+            self.console.print(f"  📈 Signal Quality: [{'green' if signal_pct > 40 else 'yellow' if signal_pct > 25 else 'red'}]{signal_pct}% high-value[/{'green' if signal_pct > 40 else 'yellow' if signal_pct > 25 else 'red'}]\n")
+
+            goal_insights = goal_alignment.get('goal_insights', [])
+            if goal_insights:
+                self.console.print("[dim]Goal-Specific Insights:[/dim]\n")
+
+                for insight in goal_insights:
+                    status_emoji = "✅" if insight['status'] == 'on_track' else "⚠️ "
+                    status_color = "green" if insight['status'] == 'on_track' else "yellow"
+
+                    self.console.print(f"  {status_emoji} [{status_color}]{insight['goal']}[/{status_color}]")
+                    self.console.print(f"     {insight['insight']}")
+                    self.console.print(f"     [dim]→ {insight['action']}[/dim]\n")
+
+        # Summary with historical context
+        self.console.print()
+
+        summary_text = "[bold cyan]✨ CHIEF OF STAFF RECOMMENDATION[/bold cyan]\n\n"
+        summary_text += f"Your inbox is [{'green' if goal_alignment.get('inbox_composition_signal_pct', 0) > 40 else 'yellow'}]{goal_alignment.get('inbox_composition_signal_pct', 0)}% signal[/{'green' if goal_alignment.get('inbox_composition_signal_pct', 0) > 40 else 'yellow'}]. "
+        summary_text += f"You have [{('red' if email_debt > 15 else 'yellow' if email_debt > 5 else 'green')}]{email_debt} VIP emails[/{('red' if email_debt > 15 else 'yellow' if email_debt > 5 else 'green')}] waiting.\n\n"
+
+        # Add trend context if available
+        if trends and len(trends) >= 2:
+            noise_prev = trends[1]['noise_percentage']
+            noise_curr = noise_analysis.get('noise_percentage', 0)
+            noise_diff = noise_curr - noise_prev
+
+            if noise_diff < -5:
+                summary_text += f"[green]🎉 Great progress! Noise down {abs(noise_diff):.1f}% since last check.[/green]\n"
+            elif noise_diff > 5:
+                summary_text += f"[red]📈 Noise increased {noise_diff:.1f}% - time to clean up![/red]\n"
+
+        summary_text += f"\n[dim]Top Priority: {goal_insights[0]['action'] if goal_insights else 'Keep up your inbox hygiene'}[/dim]"
+
+        self.console.print(Panel(
+            summary_text,
+            border_style="cyan",
+            padding=(1, 2)
+        ))
+        self.console.print()
+
     def _parse_selection_input(self, selection: str, max_index: int) -> set:
         """Parse user selection input like '1,3,5' or '1-3'."""
         indices = set()

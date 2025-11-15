@@ -35,12 +35,14 @@ class UnsubscribeAgent:
         if self.playwright:
             await self.playwright.stop()
 
-    async def unsubscribe_from_email(self, email_data: Dict) -> Tuple[bool, str]:
+    async def unsubscribe_from_email(self, email_data: Dict, db=None) -> Tuple[bool, str]:
         """
         Attempt to unsubscribe from an email using its unsubscribe links.
+        Uses learned patterns to prioritize which links to try first.
 
         Args:
             email_data: Dictionary containing email data with 'unsubscribe_links'
+            db: Optional database instance for learning link patterns
 
         Returns:
             Tuple of (success: bool, message: str)
@@ -48,8 +50,59 @@ class UnsubscribeAgent:
         if not email_data.get('unsubscribe_links'):
             return False, "No unsubscribe links found"
 
+        links = email_data['unsubscribe_links']
+
+        # If we have database, try to sort links by learned success patterns
+        if db:
+            try:
+                from urllib.parse import urlparse
+
+                # Get domains and patterns for all links
+                link_priorities = []
+                for link in links:
+                    if link.startswith('mailto:'):
+                        link_priorities.append((link, -1))  # Lowest priority
+                        continue
+
+                    try:
+                        parsed = urlparse(link)
+                        domain = parsed.netloc
+                        best_patterns = db.get_best_link_patterns_for_domain(domain)
+
+                        # Calculate priority based on learned patterns
+                        path_lower = parsed.path.lower()
+                        priority = 0
+
+                        # Check if this link matches any successful pattern
+                        for idx, pattern in enumerate(best_patterns):
+                            if pattern in path_lower or pattern == 'other':
+                                priority = len(best_patterns) - idx + 10
+                                break
+
+                        # Default priority for links with no learned pattern
+                        if priority == 0:
+                            if 'unsubscribe' in path_lower:
+                                priority = 5
+                            elif 'opt-out' in path_lower or 'optout' in path_lower:
+                                priority = 4
+                            elif 'preferences' in path_lower:
+                                priority = 3
+                            else:
+                                priority = 2
+
+                        link_priorities.append((link, priority))
+                    except Exception:
+                        link_priorities.append((link, 1))
+
+                # Sort by priority (highest first)
+                link_priorities.sort(key=lambda x: x[1], reverse=True)
+                links = [link for link, _ in link_priorities]
+
+            except Exception:
+                pass  # Fall back to original order if learning fails
+
         # Try each unsubscribe link until one succeeds
-        for link in email_data['unsubscribe_links']:
+        for link in links:
             # Skip mailto links
             if link.startswith('mailto:'):
                 continue
@@ -218,13 +271,14 @@ class UnsubscribeAgent:
         return False
 
 
-async def unsubscribe_from_emails(emails: List[Dict], headless: bool = False) -> List[Dict]:
+async def unsubscribe_from_emails(emails: List[Dict], headless: bool = False, db=None) -> List[Dict]:
     """
     Unsubscribe from a list of emails.
 
     Args:
         emails: List of email data dictionaries
         headless: Run browser in headless mode
+        db: Optional database instance for learning patterns
 
     Returns:
         List of results with success status
@@ -233,7 +287,7 @@ async def unsubscribe_from_emails(emails: List[Dict], headless: bool = False) ->
 
     async with UnsubscribeAgent(headless=headless) as agent:
         for email in emails:
-            success, message = await agent.unsubscribe_from_email(email)
+            success, message = await agent.unsubscribe_from_email(email, db=db)
             results.append({
                 'email': email,
                 'success': success,

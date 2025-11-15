@@ -17,7 +17,11 @@ import os
 import json
 
 # Gmail API scopes
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.labels',
+    'https://www.googleapis.com/auth/gmail.settings.basic'
+]
 
 
 class GmailClient:
@@ -44,7 +48,8 @@ class GmailClient:
         if api_key:
             try:
                 self.anthropic_client = anthropic.Anthropic(api_key=api_key)
-            except:
+            except Exception as e:
+                print(f"Warning: Failed to initialize Anthropic client: {e}")
                 pass  # Summaries are optional
 
     def authenticate(self) -> bool:
@@ -230,14 +235,14 @@ class GmailClient:
 
     def _summarize_email_content(self, snippet: str, subject: str) -> str:
         """
-        Generate a one-sentence summary of what's IN this specific email.
+        Generate a 3-sentence summary of what's IN this specific email.
 
         Args:
             snippet: Email body preview/snippet
             subject: Email subject line
 
         Returns:
-            One-sentence summary of email content
+            3-sentence summary of email content
         """
         if not self.anthropic_client or not snippet:
             return ""
@@ -245,21 +250,17 @@ class GmailClient:
         try:
             message = self.anthropic_client.messages.create(
                 model="claude-3-haiku-20240307",
-                max_tokens=100,
+                max_tokens=60,
                 messages=[{
                     "role": "user",
-                    "content": f"""Summarize what's actually IN this email in one short sentence (max 12 words).
+                    "content": f"""In ONE short sentence (max 15 words), what's in this email?
 
 Subject: {subject}
-Content: {snippet[:300]}
-
-What are they saying/offering/promoting in THIS specific email? Be concrete.
+Preview: {snippet[:300]}
 
 Examples:
-- "Recipe for beef stew with winter vegetables"
-- "50% off sale on winter jackets, ends tonight"
-- "Weekly roundup of design articles and trends"
-- "New feature announcement: dark mode support"
+- "Flash sale on winter jackets, 60% off until midnight."
+- "New design trends report with 15 case studies."
 
 Your summary:"""
                 }]
@@ -267,7 +268,8 @@ Your summary:"""
 
             return message.content[0].text.strip()
 
-        except Exception:
+        except Exception as e:
+            print(f"Error generating email summary: {e}")
             return ""  # Summaries are optional
 
     def _generate_summary(self, sender_name: str, sample_subjects: List[str]) -> str:
@@ -303,25 +305,21 @@ User context:
 
             message = self.anthropic_client.messages.create(
                 model="claude-3-haiku-20240307",
-                max_tokens=200,
+                max_tokens=80,
                 messages=[{
                     "role": "user",
-                    "content": f"""Based on these email subject lines from {sender_name}, give me a detailed but direct assessment.
+                    "content": f"""Based on these subject lines from {sender_name}, write ONE brutally honest sentence (max 20 words):
 
-Subject lines:
 {subjects_text}
-{user_context}
-In 2-3 SHORT sentences (max 40 words total), tell me:
-1. What is this sender ACTUALLY trying to do? (their real goal/business model)
-2. Why do they keep emailing? (what action do they want from you)
-3. Is this relevant/useful FOR THIS SPECIFIC USER or just noise?
 
-Be direct and honest. Cut through marketing BS. Tailor to user's interests. Examples:
-- "E-commerce trying to drive repeat purchases with daily deals and urgency tactics. Wants you to impulse buy. Pure marketing noise for your work."
-- "Design newsletter curating trends and case studies. Building engaged audience. Actually useful for your Shopify leadership role."
-- "Travel company pushing vacation packages with FOMO tactics. Wants bookings. Not relevant to current priorities."
+What do they want from you? Is it useful or noise?
 
-Your assessment:"""
+Examples:
+- "Daily deals spam trying to drive impulse purchases. Marketing noise."
+- "Design trends newsletter. Useful for your creative work."
+- "Travel promotions with FOMO tactics. Not relevant."
+
+Your one sentence:"""
                 }]
             )
 
@@ -329,7 +327,8 @@ Your assessment:"""
             # Allow longer summaries since we want more detail
             return summary if len(summary) < 250 else summary[:247] + "..."
 
-        except Exception:
+        except Exception as e:
+            print(f"Warning: AI summary generation failed for {sender_name}: {e}")
             return ""  # Summaries are optional, don't fail if they don't work
 
     def analyze_reading_patterns(self, days_back: int = 90, max_emails: int = 500,
@@ -464,20 +463,19 @@ Your assessment:"""
         worst_offenders = []
         now = datetime.now().timestamp() * 1000  # Convert to milliseconds
 
-        # Get list of already unsubscribed senders to filter out
-        already_unsubscribed = set()
+        # Get list of senders to skip (unsubscribed + recently attempted)
+        senders_to_skip = set()
         if update_db:
             from src.database import UnsubscribeDatabase
             db = UnsubscribeDatabase()
-            unsubscribed_list = db.get_all_unsubscribed()
-            already_unsubscribed = {s['sender_address'] for s in unsubscribed_list}
+            senders_to_skip = db.get_senders_to_skip()
 
         ai_progress_count = 0
         total_to_process = len([s for s in sender_stats.values() if s.get('sample_subjects')])
 
         for sender_address, stats in sender_stats.items():
-            # Skip if already unsubscribed
-            if sender_address in already_unsubscribed:
+            # Skip if already unsubscribed or recently attempted
+            if sender_address in senders_to_skip:
                 continue
             if stats['total_emails'] > 0:
                 stats['unread_percentage'] = (stats['unread_emails'] / stats['total_emails']) * 100

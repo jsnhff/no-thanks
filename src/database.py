@@ -89,6 +89,20 @@ class UnsubscribeDatabase:
                 )
             ''')
 
+            # Table for learning from unsubscribe attempts
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS unsubscribe_link_patterns (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    domain TEXT NOT NULL,
+                    link_pattern TEXT NOT NULL,
+                    success_count INTEGER DEFAULT 0,
+                    failure_count INTEGER DEFAULT 0,
+                    last_attempt_date TEXT,
+                    notes TEXT,
+                    UNIQUE(domain, link_pattern)
+                )
+            ''')
+
             # Create indices for better performance
             cursor.execute('''
                 CREATE INDEX IF NOT EXISTS idx_sender_address
@@ -103,6 +117,34 @@ class UnsubscribeDatabase:
             cursor.execute('''
                 CREATE INDEX IF NOT EXISTS idx_reading_patterns_sender
                 ON reading_patterns(sender_address)
+            ''')
+
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_link_patterns_domain
+                ON unsubscribe_link_patterns(domain)
+            ''')
+
+            # Table for Chief of Staff historical analysis
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS chief_of_staff_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    analysis_date TEXT NOT NULL,
+                    period_days INTEGER NOT NULL,
+                    total_emails INTEGER DEFAULT 0,
+                    vip_count INTEGER DEFAULT 0,
+                    signal_count INTEGER DEFAULT 0,
+                    noise_count INTEGER DEFAULT 0,
+                    noise_percentage REAL DEFAULT 0,
+                    email_debt_score INTEGER DEFAULT 0,
+                    signal_percentage REAL DEFAULT 0,
+                    time_wasted_hours REAL DEFAULT 0,
+                    analysis_data TEXT
+                )
+            ''')
+
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_cos_history_date
+                ON chief_of_staff_history(analysis_date)
             ''')
 
     def add_subscription(self, sender_address: str, sender_name: str = "") -> int:
@@ -307,6 +349,38 @@ class UnsubscribeDatabase:
             ''')
             return [dict(row) for row in cursor.fetchall()]
 
+    def get_senders_to_skip(self) -> set:
+        """
+        Get sender addresses that should be skipped in suggestions.
+        Includes successfully unsubscribed and recently attempted (even if failed).
+
+        Returns:
+            Set of sender addresses to skip
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            skip_senders = set()
+
+            # Get all successfully unsubscribed
+            cursor.execute('''
+                SELECT sender_address FROM subscriptions
+                WHERE unsubscribe_status = 'unsubscribed'
+            ''')
+            skip_senders.update(row['sender_address'] for row in cursor.fetchall())
+
+            # Get senders with recent attempts (within last 7 days) to avoid showing repeatedly
+            # This includes both successful and failed attempts
+            cursor.execute('''
+                SELECT DISTINCT s.sender_address
+                FROM subscriptions s
+                INNER JOIN unsubscribe_attempts ua ON s.id = ua.subscription_id
+                WHERE ua.attempt_date >= datetime('now', '-7 days')
+            ''')
+            skip_senders.update(row['sender_address'] for row in cursor.fetchall())
+
+            return skip_senders
+
     def get_subscription_by_sender(self, sender_address: str) -> Optional[Dict]:
         """
         Get subscription details by sender address.
@@ -466,3 +540,196 @@ class UnsubscribeDatabase:
             if result:
                 return dict(result)
             return None
+
+    def record_link_pattern_result(self, unsubscribe_link: str, success: bool):
+        """
+        Record the result of an unsubscribe link attempt to learn patterns.
+
+        Args:
+            unsubscribe_link: The unsubscribe URL that was tried
+            success: Whether the attempt succeeded
+        """
+        if not unsubscribe_link:
+            return
+
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(unsubscribe_link)
+            domain = parsed.netloc
+
+            # Extract pattern (e.g., 'unsubscribe', 'opt-out', 'preferences')
+            path_lower = parsed.path.lower()
+            pattern = 'other'
+            if 'unsubscribe' in path_lower:
+                pattern = 'unsubscribe'
+            elif 'opt-out' in path_lower or 'optout' in path_lower:
+                pattern = 'opt-out'
+            elif 'preferences' in path_lower or 'settings' in path_lower:
+                pattern = 'preferences'
+            elif 'remove' in path_lower:
+                pattern = 'remove'
+
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Check if pattern exists
+                cursor.execute('''
+                    SELECT id, success_count, failure_count
+                    FROM unsubscribe_link_patterns
+                    WHERE domain = ? AND link_pattern = ?
+                ''', (domain, pattern))
+
+                result = cursor.fetchone()
+
+                if result:
+                    # Update existing pattern
+                    if success:
+                        cursor.execute('''
+                            UPDATE unsubscribe_link_patterns
+                            SET success_count = success_count + 1,
+                                last_attempt_date = ?
+                            WHERE id = ?
+                        ''', (datetime.now().isoformat(), result['id']))
+                    else:
+                        cursor.execute('''
+                            UPDATE unsubscribe_link_patterns
+                            SET failure_count = failure_count + 1,
+                                last_attempt_date = ?
+                            WHERE id = ?
+                        ''', (datetime.now().isoformat(), result['id']))
+                else:
+                    # Create new pattern entry
+                    cursor.execute('''
+                        INSERT INTO unsubscribe_link_patterns
+                        (domain, link_pattern, success_count, failure_count, last_attempt_date)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (
+                        domain,
+                        pattern,
+                        1 if success else 0,
+                        0 if success else 1,
+                        datetime.now().isoformat()
+                    ))
+
+        except Exception:
+            pass  # Don't fail the main operation if learning fails
+
+    def get_best_link_patterns_for_domain(self, domain: str) -> List[str]:
+        """
+        Get the most successful link patterns for a domain based on history.
+
+        Args:
+            domain: The domain to look up
+
+        Returns:
+            List of patterns sorted by success rate (best first)
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                SELECT link_pattern, success_count, failure_count,
+                       CAST(success_count AS FLOAT) / NULLIF(success_count + failure_count, 0) as success_rate
+                FROM unsubscribe_link_patterns
+                WHERE domain = ?
+                  AND (success_count + failure_count) >= 2
+                ORDER BY success_rate DESC, success_count DESC
+            ''', (domain,))
+
+            results = cursor.fetchall()
+            return [row['link_pattern'] for row in results]
+
+    def get_link_learning_stats(self) -> Dict:
+        """
+        Get statistics about learned link patterns.
+
+        Returns:
+            Dictionary with learning statistics
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            stats = {}
+
+            # Total domains learned
+            cursor.execute('SELECT COUNT(DISTINCT domain) as count FROM unsubscribe_link_patterns')
+            stats['domains_learned'] = cursor.fetchone()['count']
+
+            # Total patterns tracked
+            cursor.execute('SELECT COUNT(*) as count FROM unsubscribe_link_patterns')
+            stats['total_patterns'] = cursor.fetchone()['count']
+
+            # Most successful pattern overall
+            cursor.execute('''
+                SELECT link_pattern, SUM(success_count) as total_success, SUM(failure_count) as total_failure
+                FROM unsubscribe_link_patterns
+                GROUP BY link_pattern
+                ORDER BY total_success DESC
+                LIMIT 1
+            ''')
+            result = cursor.fetchone()
+            if result:
+                stats['best_pattern'] = result['link_pattern']
+                stats['best_pattern_success'] = result['total_success']
+                stats['best_pattern_failure'] = result['total_failure']
+            else:
+                stats['best_pattern'] = None
+
+            return stats
+
+    def save_chief_of_staff_analysis(self, analysis: Dict):
+        """
+        Save Chief of Staff analysis to history for trend tracking.
+
+        Args:
+            analysis: The complete analysis dictionary from ChiefOfStaff
+        """
+        import json
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            vip_insights = analysis.get('vip_insights', {})
+            noise_analysis = analysis.get('noise_analysis', {})
+            goal_alignment = analysis.get('goal_alignment', {})
+
+            cursor.execute('''
+                INSERT INTO chief_of_staff_history
+                (analysis_date, period_days, total_emails, vip_count, signal_count,
+                 noise_count, noise_percentage, email_debt_score, signal_percentage,
+                 time_wasted_hours, analysis_data)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                datetime.now().isoformat(),
+                analysis.get('period_days', 30),
+                analysis.get('total_emails', 0),
+                vip_insights.get('vip_count', 0),
+                noise_analysis.get('signal_count', 0),
+                noise_analysis.get('noise_count', 0),
+                noise_analysis.get('noise_percentage', 0),
+                goal_alignment.get('email_debt_score', 0),
+                goal_alignment.get('inbox_composition_signal_pct', 0),
+                noise_analysis.get('estimated_time_wasted_hours', 0),
+                json.dumps(analysis)
+            ))
+
+    def get_chief_of_staff_trends(self, limit: int = 5) -> List[Dict]:
+        """
+        Get historical Chief of Staff analyses to show trends.
+
+        Args:
+            limit: Number of past analyses to retrieve
+
+        Returns:
+            List of historical analyses
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                SELECT * FROM chief_of_staff_history
+                ORDER BY analysis_date DESC
+                LIMIT ?
+            ''', (limit,))
+
+            return [dict(row) for row in cursor.fetchall()]

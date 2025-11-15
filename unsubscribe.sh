@@ -1,5 +1,5 @@
 #!/bin/bash
-# Gmail Unsubscriber - Easy launcher script
+# Gmail Unsubscriber - Easy launcher script with AI-powered suggestions
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -8,6 +8,10 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 source venv/bin/activate
 
-# Default: suggest mode with 60 days lookback
-# This finds subscriptions you never read over the last 2 months
-python main.py --suggest --days 60
+# Run suggest mode with 90 days lookback
+# Features:
+# - 3-sentence AI summaries of actual email content
+# - Smart learning from failed unsubscribe attempts
+# - Won't show the same sender repeatedly
+# - Tinder-style Keep or Cut workflow 🔪
+python main.py --suggest --days 90
