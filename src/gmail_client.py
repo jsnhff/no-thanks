@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from email.utils import parseaddr
 import re
 import base64
-import anthropic
+from openai import OpenAI
 import os
 import json
 
@@ -31,7 +31,7 @@ class GmailClient:
         self.credentials_path = credentials_path
         self.token_path = token_path
         self.service = None
-        self.anthropic_client = None
+        self.openai_client = None
         self.user_profile = None
 
         # Load user profile if available
@@ -43,13 +43,13 @@ class GmailClient:
         except:
             pass  # Profile is optional
 
-        # Initialize Anthropic if API key is available
-        api_key = os.getenv('ANTHROPIC_API_KEY')
+        # Initialize OpenAI if API key is available
+        api_key = os.getenv('OPENAI_API_KEY')
         if api_key:
             try:
-                self.anthropic_client = anthropic.Anthropic(api_key=api_key)
+                self.openai_client = OpenAI(api_key=api_key)
             except Exception as e:
-                print(f"Warning: Failed to initialize Anthropic client: {e}")
+                print(f"Warning: Failed to initialize OpenAI client: {e}")
                 pass  # Summaries are optional
 
     def authenticate(self) -> bool:
@@ -244,13 +244,13 @@ class GmailClient:
         Returns:
             3-sentence summary of email content
         """
-        if not self.anthropic_client or not snippet:
+        if not self.openai_client or not snippet:
             return ""
 
         try:
-            message = self.anthropic_client.messages.create(
-                model="claude-3-haiku-20240307",
-                max_tokens=60,
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                max_tokens=30,
                 messages=[{
                     "role": "user",
                     "content": f"""In ONE short sentence (max 15 words), what's in this email?
@@ -266,7 +266,7 @@ Your summary:"""
                 }]
             )
 
-            return message.content[0].text.strip()
+            return response.choices[0].message.content.strip()
 
         except Exception as e:
             print(f"Error generating email summary: {e}")
@@ -283,7 +283,7 @@ Your summary:"""
         Returns:
             Hot take summary or empty string if unavailable
         """
-        if not self.anthropic_client or not sample_subjects:
+        if not self.openai_client or not sample_subjects:
             return ""
 
         try:
@@ -303,9 +303,9 @@ User context:
 - Dislikes: {low_value}
 """
 
-            message = self.anthropic_client.messages.create(
-                model="claude-3-haiku-20240307",
-                max_tokens=80,
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                max_tokens=50,
                 messages=[{
                     "role": "user",
                     "content": f"""Based on these subject lines from {sender_name}, write ONE brutally honest sentence (max 20 words):
@@ -323,7 +323,7 @@ Your one sentence:"""
                 }]
             )
 
-            summary = message.content[0].text.strip()
+            summary = response.choices[0].message.content.strip()
             # Allow longer summaries since we want more detail
             return summary if len(summary) < 250 else summary[:247] + "..."
 
