@@ -9,15 +9,18 @@ The Chief of Staff analyzes your inbox and tells you:
 - **What's noise** (Signal vs Noise Analysis)
 - **How your inbox aligns with your goals** (Goal Alignment Check)
 
-## Your Q4 2025 Goals (from user_profile.json)
+## Your Goals (from user_profile.json)
 
-1. Lead more visibly and assertively at Shopify ('from the front')
-2. Launch and promote Regender.xyz
-3. Advance Spanish fluency
-4. Create and share 1–2 new artworks per year
-5. Deepen friendships and community connections in Los Angeles
-6. Be present and engaged as a husband and dad
-7. Maintain financial clarity and personal balance
+The Chief of Staff analyzes your inbox based on **your specific goals** defined in `user_profile.json`. 
+
+Example goals might include:
+1. Professional leadership and visibility
+2. Side project launches and promotion
+3. Learning new skills
+4. Creative output and sharing
+5. Deepening friendships and community connections
+6. Being present for family
+7. Maintaining work-life balance
 
 ## How To Use
 
@@ -35,9 +38,9 @@ python main.py --chief-of-staff --days 7   # Just the last week
 ```
 
 ### Add an Alias
-Add to your `~/.zshrc`:
+Add to your `~/.zshrc` or `~/.bashrc`:
 ```bash
-alias cos='/Users/jasonhuff/gmail-cleaner/chief-of-staff.sh'
+alias cos='/path/to/your/gmail-cleaner/chief-of-staff.sh'
 ```
 
 Then just run:
@@ -49,9 +52,9 @@ cos
 
 ### 👥 VIP Relationship Tracker
 Identifies your most important people based on:
-- **Leadership Tier**: Shopify peers and leadership
-- **Creative Tier**: Collaborators on projects like Regender.xyz
-- **Personal Tier**: Friends, family, LA community
+- **Leadership Tier**: Professional peers and leadership
+- **Creative Tier**: Collaborators on your projects
+- **Personal Tier**: Friends, family, and community
 
 Shows you:
 - Who you respond to fastest
@@ -68,19 +71,19 @@ Quantifies the clutter:
 ### 🎯 Goal Alignment Check
 Shows how your inbox helps/hurts each goal:
 
-**Goal: Lead more visibly at Shopify**
-- Tracks Shopify leadership emails
+**Goal: Professional leadership and visibility**
+- Tracks professional leadership emails
 - Flags if you're falling behind on responses
 
-**Goal: Deepen LA friendships**
-- Identifies personal emails from LA community
+**Goal: Deepen community connections**
+- Identifies personal emails from your community
 - Shows connection patterns
 
-**Goal: Be present as husband and dad**
+**Goal: Be present for family**
 - Measures noise stealing family time
 - Calculates hours you could reclaim
 
-**Goal: Launch Regender.xyz**
+**Goal: Launch side projects**
 - Flags creative collaborator emails
 - Identifies project opportunities
 
@@ -111,9 +114,9 @@ Emma Rodriguez          Personal      5       2      ⚠️  2 emails need atten
 ✉️  VIPs Needing Response: 5
 📈 Signal Quality: 34% high-value
 
-✅ Lead more visibly at Shopify
-   3 unread emails from Shopify leadership peers
-   → Review Shopify communications
+✅ Professional leadership
+   3 unread emails from professional leadership peers
+   → Review work communications
 
 ⚠️  Deepen friendships and community connections
    8 unread personal emails, 4 connections haven't emailed in 2+ weeks
@@ -122,17 +125,17 @@ Emma Rodriguez          Personal      5       2      ⚠️  2 emails need atten
 ✨ CHIEF OF STAFF RECOMMENDATION
 
 Your inbox is 34% signal. You have 12 VIP emails waiting.
-Top Priority: Review Shopify communications
+Top Priority: Review work communications
 ```
 
 ## Why This Matters
 
 Most inbox tools treat all emails equally. Chief of Staff understands **your specific goals** and helps you:
 
-✅ Never miss important Shopify leadership emails
-✅ Stay connected with LA friends and collaborators
+✅ Never miss important professional leadership emails
+✅ Stay connected with friends and collaborators
 ✅ Reclaim time for family by cutting noise
-✅ Spot Regender.xyz opportunities
+✅ Spot side project opportunities
 ✅ Maintain the balance you need to lead effectively
 
 ## Integration with Unsubscribe Feature

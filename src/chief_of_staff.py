@@ -288,18 +288,18 @@ class ChiefOfStaff:
         # Goal-specific insights
         goal_insights = []
 
-        # Goal 1: Lead visibly at Shopify
-        shopify_vips = [v for v in vip_insights.get('vips', []) if v['relationship_tier'] == 'leadership']
-        if shopify_vips:
-            shopify_unread = sum(v['unread_count'] for v in shopify_vips)
+        # Goal 1: Professional leadership
+        leadership_vips = [v for v in vip_insights.get('vips', []) if v['relationship_tier'] == 'leadership']
+        if leadership_vips:
+            leadership_unread = sum(v['unread_count'] for v in leadership_vips)
             goal_insights.append({
-                'goal': 'Lead more visibly at Shopify',
-                'status': 'needs_attention' if shopify_unread > 5 else 'on_track',
-                'insight': f"{shopify_unread} unread emails from Shopify leadership peers",
-                'action': 'Review Shopify communications' if shopify_unread > 5 else 'Keep up the engagement'
+                'goal': 'Professional leadership and visibility',
+                'status': 'needs_attention' if leadership_unread > 5 else 'on_track',
+                'insight': f"{leadership_unread} unread emails from professional leadership peers",
+                'action': 'Review work communications' if leadership_unread > 5 else 'Keep up the engagement'
             })
 
-        # Goal 2: Deepen LA connections
+        # Goal 2: Deepen community connections
         personal_vips = [v for v in vip_insights.get('vips', []) if v['relationship_tier'] == 'personal']
         if personal_vips:
             personal_unread = sum(v['unread_count'] for v in personal_vips)
@@ -313,21 +313,21 @@ class ChiefOfStaff:
 
         # Goal 3: Be present / maintain balance
         goal_insights.append({
-            'goal': 'Be present as husband and dad',
+            'goal': 'Be present for family',
             'status': 'on_track' if noise_analysis['noise_percentage'] < 60 else 'needs_attention',
             'insight': f"{noise_analysis['noise_percentage']}% of inbox is noise, wasting ~{noise_analysis['estimated_time_wasted_hours']}hrs",
             'action': f"Cut noise to reclaim {noise_analysis['estimated_time_wasted_hours']}hrs/month for family" if noise_analysis['noise_percentage'] > 60 else 'Noise is under control'
         })
 
-        # Goal 4: Launch Regender.xyz
+        # Goal 4: Launch side projects
         creative_vips = [v for v in vip_insights.get('vips', []) if v['relationship_tier'] == 'creative']
         if creative_vips:
             creative_unread = sum(v['unread_count'] for v in creative_vips)
             goal_insights.append({
-                'goal': 'Launch and promote Regender.xyz',
+                'goal': 'Launch and promote side projects',
                 'status': 'on_track' if creative_unread < 5 else 'needs_attention',
                 'insight': f"{creative_unread} unread emails from creative collaborators",
-                'action': 'Check for Regender-related opportunities' if creative_unread > 0 else 'Stay engaged with creative network'
+                'action': 'Check for project-related opportunities' if creative_unread > 0 else 'Stay engaged with creative network'
             })
 
         return {
@@ -400,8 +400,11 @@ class ChiefOfStaff:
         sender_lower = sender_address.lower()
         name_lower = sender_name.lower()
 
-        # Check for Shopify leadership
-        if 'shopify' in sender_lower and is_real_human:
+        # Check for professional/work leadership
+        # Look for corporate domains and work-related indicators
+        work_indicators = ['corp', 'company', 'work', 'team']
+        if (any(ind in sender_lower for ind in work_indicators) or 
+            ('.' in domain and domain not in ['gmail.com', 'icloud.com', 'me.com', 'hey.com', 'proton.me', 'yahoo.com', 'outlook.com', 'hotmail.com'])) and is_real_human:
             return 'leadership'
 
         # Check for creative collaborators (personal domains with high engagement)
