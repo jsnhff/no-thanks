@@ -89,6 +89,17 @@ class UnsubscribeDatabase:
                 )
             ''')
 
+            # Table for tracking declined suggestions (senders user chose NOT to unsubscribe from)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS declined_suggestions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sender_address TEXT NOT NULL UNIQUE,
+                    sender_name TEXT,
+                    declined_date TEXT NOT NULL,
+                    reason TEXT
+                )
+            ''')
+
             # Table for learning from unsubscribe attempts
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS unsubscribe_link_patterns (
@@ -122,6 +133,11 @@ class UnsubscribeDatabase:
             cursor.execute('''
                 CREATE INDEX IF NOT EXISTS idx_link_patterns_domain
                 ON unsubscribe_link_patterns(domain)
+            ''')
+
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_declined_sender
+                ON declined_suggestions(sender_address)
             ''')
 
             # Table for Chief of Staff historical analysis
@@ -352,7 +368,7 @@ class UnsubscribeDatabase:
     def get_senders_to_skip(self) -> set:
         """
         Get sender addresses that should be skipped in suggestions.
-        Includes successfully unsubscribed and recently attempted (even if failed).
+        Includes successfully unsubscribed, recently attempted, and recently declined.
 
         Returns:
             Set of sender addresses to skip
@@ -379,7 +395,32 @@ class UnsubscribeDatabase:
             ''')
             skip_senders.update(row['sender_address'] for row in cursor.fetchall())
 
+            # Get senders that were declined in the last 7 days
+            cursor.execute('''
+                SELECT sender_address FROM declined_suggestions
+                WHERE declined_date >= datetime('now', '-7 days')
+            ''')
+            skip_senders.update(row['sender_address'] for row in cursor.fetchall())
+
             return skip_senders
+
+    def record_declined_suggestion(self, sender_address: str, sender_name: str = None, reason: str = None):
+        """
+        Record that the user declined to unsubscribe from a suggested sender.
+        This prevents the same sender from being suggested again soon.
+
+        Args:
+            sender_address: Email address of sender
+            sender_name: Display name of sender (optional)
+            reason: Optional reason for declining (future use)
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR REPLACE INTO declined_suggestions
+                (sender_address, sender_name, declined_date, reason)
+                VALUES (?, ?, ?, ?)
+            ''', (sender_address, sender_name, datetime.now().isoformat(), reason))
 
     def get_subscription_by_sender(self, sender_address: str) -> Optional[Dict]:
         """

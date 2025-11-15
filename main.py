@@ -139,7 +139,14 @@ class GmailUnsubscriber:
             return
 
         # Display worst offenders and get approval
-        approved_senders = self.cli.display_worst_offenders(worst_offenders)
+        approved_senders, declined_senders = self.cli.display_worst_offenders(worst_offenders)
+
+        # Record declined suggestions so they don't show up again soon
+        for sender_data in declined_senders:
+            self.db.record_declined_suggestion(
+                sender_data['sender_address'],
+                sender_data['sender_name']
+            )
 
         if not approved_senders:
             self.cli.display_info("No senders selected for unsubscribing.")
@@ -250,6 +257,15 @@ class GmailUnsubscriber:
 
                 # Record link pattern result for learning
                 self.db.record_link_pattern_result(unsubscribe_link, success)
+
+                # Archive the email to clean up inbox
+                # Skip archiving for mock emails (used in suggest mode with cached links)
+                if not email['id'].startswith('suggested_'):
+                    try:
+                        self.gmail.archive_email(email['id'])
+                    except Exception as e:
+                        # Don't fail the whole process if archiving fails
+                        pass
 
                 # Display result
                 self.cli.display_unsubscribe_result(email, success, message)

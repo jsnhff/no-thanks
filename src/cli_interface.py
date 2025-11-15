@@ -233,7 +233,7 @@ class CLIInterface:
         """Ask user if they want to continue scanning for more emails."""
         return Confirm.ask("\n[cyan]Scan for more emails?[/cyan]", default=False)
 
-    def display_worst_offenders(self, offenders: List[Dict]) -> List[Dict]:
+    def display_worst_offenders(self, offenders: List[Dict]) -> tuple[List[Dict], List[Dict]]:
         """
         Display worst offender senders and get user approval.
 
@@ -241,18 +241,19 @@ class CLIInterface:
             offenders: List of sender statistics
 
         Returns:
-            List of approved senders to unsubscribe from
+            Tuple of (approved senders to unsubscribe from, declined senders)
         """
         if not offenders:
             self.console.print("[yellow]No senders found that match the criteria.[/yellow]")
-            return []
+            return [], []
 
         self.console.print(f"\n[bold]Found {len(offenders)} subscription(s) you rarely/never read:[/bold]\n")
         self.console.print("[dim]Ranked by staleness & relevance (never/rarely read + time since last read)[/dim]\n")
         self.console.print("[dim]Review one at a time - Keep or Cut with a knife! 🔪[/dim]\n")
 
-        # Track which to cut
+        # Track which to cut and which to keep (decline)
         to_cut = []
+        declined = []
 
         # Show one card at a time with keep/cut decision
         for idx, offender in enumerate(offenders, 1):
@@ -322,6 +323,7 @@ class CLIInterface:
                 to_cut.append(offender)
                 self.console.print(f"[red]🔪 Marked for cutting[/red] ({len(to_cut)} total)\n")
             elif choice in ["keep", "k"]:
+                declined.append(offender)
                 self.console.print(f"[green]✓ Keeping[/green]\n")
             elif choice in ["quit", "q"]:
                 self.console.print("[yellow]Stopped reviewing. Processing cuts so far...[/yellow]\n")
@@ -330,7 +332,7 @@ class CLIInterface:
         # Show summary if anything was cut
         if not to_cut:
             self.console.print("[yellow]No subscriptions marked for cutting.[/yellow]")
-            return []
+            return [], declined
 
         # Show summary
         self.console.print(f"[bold red]🔪 Ready to cut {len(to_cut)} subscription(s):[/bold red]")
@@ -339,9 +341,9 @@ class CLIInterface:
 
         self.console.print()
         if Confirm.ask("[bold]Proceed with unsubscribing?[/bold]", default=True):
-            return to_cut
+            return to_cut, declined
 
-        return []
+        return [], declined
 
     def display_chief_of_staff_report(self, analysis: Dict, trends: List[Dict] = None):
         """Display the Chief of Staff inbox intelligence report."""

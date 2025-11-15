@@ -583,3 +583,24 @@ Your one sentence:"""
             print(f"Error fetching emails from {sender_address}: {e}")
 
         return emails
+
+    def archive_email(self, email_id: str) -> bool:
+        """
+        Archive an email by removing it from the inbox.
+
+        Args:
+            email_id: Gmail message ID to archive
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            self.service.users().messages().modify(
+                userId='me',
+                id=email_id,
+                body={'removeLabelIds': ['INBOX']}
+            ).execute()
+            return True
+        except Exception as e:
+            print(f"Error archiving email {email_id}: {e}")
+            return False
