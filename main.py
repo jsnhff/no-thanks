@@ -26,12 +26,13 @@ from rich.panel import Panel
 class GmailUnsubscriber:
     """Main application orchestrator."""
 
-    def __init__(self, headless: bool = False, max_emails: int = 50):
+    def __init__(self, headless: bool = False, max_emails: int = 50, skip_ai: bool = False):
         self.gmail = GmailClient()
         self.cli = CLIInterface()
         self.db = UnsubscribeDatabase()
         self.headless = headless
         self.max_emails = max_emails
+        self.skip_ai = skip_ai
 
     def run(self):
         """Run the main application."""
@@ -118,7 +119,8 @@ class GmailUnsubscriber:
                 days_back=days_back,
                 max_emails=self.max_emails * 10,  # Analyze more emails for better patterns
                 update_db=True,  # Keep reading patterns fresh each time
-                progress_callback=update_progress
+                progress_callback=update_progress,
+                skip_ai=self.skip_ai  # Skip AI summaries if flag is set
             )
 
         self.cli.console.print()
@@ -751,10 +753,15 @@ def main():
         default=10,
         help='Engagement threshold percentage for aggressive mode (default: 10, used with --aggressive)'
     )
+    parser.add_argument(
+        '--no-ai',
+        action='store_true',
+        help='Skip AI summaries for faster performance'
+    )
 
     args = parser.parse_args()
 
-    app = GmailUnsubscriber(headless=args.headless, max_emails=args.max_emails)
+    app = GmailUnsubscriber(headless=args.headless, max_emails=args.max_emails, skip_ai=args.no_ai)
 
     try:
         if args.check_effectiveness:

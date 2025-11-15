@@ -10,12 +10,13 @@ source venv/bin/activate
 
 # If no arguments provided, use good defaults
 if [ $# -eq 0 ]; then
-    # Run suggest mode with 90 days lookback
+    # Run suggest mode with 90 days lookback (fast mode, no AI)
     # Features:
-    # - AI summaries of what each sender actually sends
     # - Smart learning from failed unsubscribe attempts
     # - Won't show the same sender repeatedly
-    python main.py --suggest --days 90
+    # - Lightning fast (no AI API calls)
+    # To enable AI summaries, use: unsubscribe --suggest --days 90
+    python main.py --suggest --days 90 --no-ai
 else
     # Pass all arguments through to main.py
     # Examples:

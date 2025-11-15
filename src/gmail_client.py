@@ -332,7 +332,7 @@ Your one sentence:"""
             return ""  # Summaries are optional, don't fail if they don't work
 
     def analyze_reading_patterns(self, days_back: int = 90, max_emails: int = 500,
-                                update_db: bool = False, progress_callback=None) -> List[Dict]:
+                                update_db: bool = False, progress_callback=None, skip_ai: bool = False) -> List[Dict]:
         """
         Analyze email reading patterns to identify worst offenders.
 
@@ -517,8 +517,8 @@ Your one sentence:"""
                         stats['unread_emails']
                     )
 
-                # Generate AI summaries for this sender
-                if stats['sample_subjects']:
+                # Generate AI summaries for this sender (unless skip_ai is True)
+                if not skip_ai and stats['sample_subjects']:
                     ai_progress_count += 1
                     if progress_callback:
                         progress_callback('ai', ai_progress_count, total_to_process)
