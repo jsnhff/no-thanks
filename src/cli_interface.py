@@ -171,7 +171,7 @@ class CLIInterface:
             if message:
                 self.console.print(f"    [dim]{message}[/dim]")
 
-    def display_summary(self, total: int, successful: int, failed: int):
+    def display_summary(self, total: int, successful: int, failed: int, archived: int = 0):
         """Display summary of unsubscribe operations."""
         self.console.print()
         summary = Text()
@@ -179,6 +179,7 @@ class CLIInterface:
         summary.append(f"Total processed: {total}\n", style="white")
         summary.append(f"Successful: {successful}\n", style="green")
         summary.append(f"Failed: {failed}\n", style="red")
+        summary.append(f"Emails archived: {archived}\n", style="cyan")
 
         self.console.print(Panel(summary, border_style="cyan"))
 
@@ -310,7 +311,7 @@ class CLIInterface:
 
             # Quick Keep or Cut decision
             self.console.print()
-            self.console.print("[dim]k[/dim] = keep  |  [dim]c[/dim] = cut 🔪  |  [dim]q[/dim] = quit")
+            self.console.print("[dim]k[/dim] = keep 💚  |  [dim]c[/dim] = cut 🔪  |  [dim]q[/dim] = quit")
             choice = Prompt.ask(
                 "[bold cyan]Your choice[/bold cyan]",
                 choices=["keep", "k", "cut", "c", "quit", "q"],
@@ -324,7 +325,7 @@ class CLIInterface:
                 self.console.print(f"[red]🔪 Marked for cutting[/red] ({len(to_cut)} total)\n")
             elif choice in ["keep", "k"]:
                 declined.append(offender)
-                self.console.print(f"[green]✓ Keeping[/green]\n")
+                self.console.print(f"[green]💚 Keeping[/green]\n")
             elif choice in ["quit", "q"]:
                 self.console.print("[yellow]Stopped reviewing. Processing cuts so far...[/yellow]\n")
                 break

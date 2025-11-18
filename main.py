@@ -208,6 +208,7 @@ class GmailUnsubscriber:
         total = len(emails)
         successful = 0
         failed = 0
+        archived = 0
         failed_items = []
 
         # Use override if provided, otherwise use instance setting
@@ -262,7 +263,8 @@ class GmailUnsubscriber:
                 # Skip archiving for mock emails (used in suggest mode with cached links)
                 if not email['id'].startswith('suggested_'):
                     try:
-                        self.gmail.archive_email(email['id'])
+                        if self.gmail.archive_email(email['id']):
+                            archived += 1
                     except Exception as e:
                         # Don't fail the whole process if archiving fails
                         pass
@@ -282,7 +284,7 @@ class GmailUnsubscriber:
                     })
 
         # Display summary
-        self.cli.display_summary(total, successful, failed)
+        self.cli.display_summary(total, successful, failed, archived)
 
         # Show manual unsubscribe links for failed attempts
         if failed_items:

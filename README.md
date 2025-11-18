@@ -1,36 +1,89 @@
-# Gmail Unsubscriber
+```
+  ____                 _ _   _    _                 _                   _ _
+ / ___|_ __ ___   __ _(_) | | |  | |_ __  ___ _   _| |__  ___  ___ _ __(_) |__   ___ _ __
+| |  _| '_ ` _ \ / _` | | | | |  | | '_ \/ __| | | | '_ \/ __|/ __| '__| | '_ \ / _ \ '__|
+| |_| | | | | | | (_| | | | | |__| | | | \__ \ |_| | |_) \__ \ (__| |  | | |_) |  __/ |
+ \____|_| |_| |_|\__,_|_|_|  \____/|_| |_|___/\__,_|_.__/|___/\___|_|  |_|_.__/ \___|_|
+```
 
-A local Python application that helps you automatically unsubscribe from unwanted emails in Gmail with your approval. Uses Playwright to intelligently navigate unsubscribe links and tracks effectiveness over time.
+**Take back your inbox. One unsubscribe at a time.**
+
+A local Python application that helps you automatically unsubscribe from unwanted emails in Gmail with your approval. Uses Playwright to intelligently navigate unsubscribe links, AI to roast your subscriptions, and tracks effectiveness over time.
+
+### 🔥 AI Hot Takes - See What You're Actually Subscribed To
+
+The app uses AI to generate brutally honest summaries of what each sender actually sends you:
+
+> _"Daily promotional emails for furniture you'll never buy, clogging your inbox with 'deals'"_
+> — IKEA Family
+
+> _"Weekly career advice emails you never open, pretending to help you 'level up' while gathering data"_
+> — LinkedIn Job Alerts
+
+> _"Motivational quotes and productivity tips you scroll past, ironically wasting the time they claim to save"_
+> — Medium Daily Digest
+
+> _"Another SaaS company's changelog that you didn't ask for, updating features you don't use"_
+> — Random B2B Tool
+
+> _"Restaurant deals for places you've ordered from once, three years ago, still desperately trying to win you back"_
+> — Grubhub
 
 ## Features
 
-- **Scans Gmail** for emails with unsubscribe links
-- **Interactive CLI** for reviewing and approving unsubscribe actions
-- **Automated browser agent** (Playwright) that navigates to unsubscribe links and completes the process
-- **SQLite database** to track:
-  - All subscriptions and unsubscribe attempts
-  - Effectiveness monitoring (checks if emails still arrive after unsubscribing)
-  - Statistics on successful vs failed unsubscribes
-- **Privacy-focused**: Runs entirely locally on your machine
-- **OAuth authentication**: Secure Google authentication (no API keys)
+- 🤖 **AI-Powered Hot Takes** - Get brutally honest summaries of what each sender actually sends you
+- 📧 **Smart Inbox Scanning** - Finds all emails with unsubscribe links across your entire Gmail
+- 🎯 **Reading Pattern Analysis** - Identifies subscriptions you never read
+- ✂️ **Interactive CLI** - Swipe-style "Keep or Cut" interface for reviewing subscriptions
+- 🤖 **Automated Unsubscribe Agent** - Playwright browser automation handles the clicking for you
+- 🗄️ **Auto-Archive** - Automatically archives emails after unsubscribing to clean up your inbox
+- 📊 **Effectiveness Tracking** - SQLite database monitors if senders actually stop emailing you
+- 🔐 **Privacy-Focused** - Runs entirely locally on your machine, no data leaves your computer
+- 🔑 **Secure OAuth** - Google authentication, no API keys needed
 
 ## Prerequisites
 
-- Python 3.8 or higher
+- Python 3.10 or higher (3.12 recommended)
 - A Google Cloud Project with Gmail API enabled
 - Gmail OAuth credentials (see setup instructions below)
+- (Optional) OpenAI API key for AI-powered hot takes
 
-## Installation
+## Quick Start
+
+The easiest way to get started:
+
+```bash
+# 1. Clone and enter the directory
+git clone https://github.com/yourusername/gmail-cleaner.git
+cd gmail-cleaner
+
+# 2. Run the setup script (does everything for you!)
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+playwright install chromium
+
+# 3. Run it!
+python main.py --suggest
+```
+
+That's it! The app will open a browser window for you to sign in to Gmail on first run.
+
+## Detailed Installation
 
 ### 1. Clone the repository
 
 ```bash
+git clone https://github.com/yourusername/gmail-cleaner.git
 cd gmail-cleaner
 ```
 
 ### 2. Create a virtual environment
 
+**Important:** Make sure you have Python 3.10 or higher installed!
+
 ```bash
+python3 --version  # Check your version
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
@@ -47,21 +100,21 @@ pip install -r requirements.txt
 playwright install chromium
 ```
 
-### 5. (Optional) Set up Anthropic API for AI Summaries
+### 5. (Optional) Set up OpenAI API for AI Hot Takes
 
 If you want AI-powered brutally honest hot takes about what each sender actually sends:
 
-1. Get an API key at [Anthropic Console](https://console.anthropic.com/)
+1. Get an API key at [OpenAI Platform](https://platform.openai.com/api-keys)
 2. Create a `.env` file (copy from `.env.example`):
    ```bash
    cp .env.example .env
    ```
 3. Add your key:
    ```
-   ANTHROPIC_API_KEY=your-api-key-here
+   OPENAI_API_KEY=your-openai-api-key-here
    ```
 
-This is **optional** - the app works fine without it, you just won't see the AI hot takes in the table.
+This is **optional** - the app works fine without it, you just won't see the AI hot takes in the table. Uses GPT-4o-mini (fast & cheap!).
 
 **Want personalized recommendations?** Create a `user_profile.json` file:
 
@@ -366,12 +419,47 @@ Some senders don't honor unsubscribe requests immediately or at all. Use the eff
 
 ## Contributing
 
-Feel free to submit issues or pull requests to improve the tool!
+Contributions are welcome! Whether it's:
+
+- 🐛 Bug reports
+- 💡 Feature suggestions
+- 📝 Documentation improvements
+- 🔧 Code contributions
+
+Feel free to:
+1. Open an issue to discuss your idea
+2. Fork the repo and create a pull request
+3. Share feedback on what works or doesn't work for you
+
+## Support
+
+If you find this tool helpful:
+- ⭐ Star this repo on GitHub
+- 🐦 Share it with friends who are drowning in email
+- 🐛 Report bugs or suggest features via GitHub Issues
 
 ## License
 
-MIT License - Feel free to use and modify as needed.
+**Non-Commercial Open Source License**
+
+TL;DR: **Use it, remix it, share it - but don't sell it!** 🚫💰
+
+This project is free for:
+- ✅ Personal use
+- ✅ Educational use
+- ✅ Modification and remixing
+- ✅ Sharing with others
+
+But you **cannot**:
+- ❌ Sell this software or derivatives
+- ❌ Use it in commercial products
+- ❌ Charge money for access to it
+- ❌ Offer it as a paid SaaS/hosted service
+
+See [LICENSE](LICENSE) for full legal details.
 
 ## Disclaimer
 
-This tool is for personal use. Always review what you're unsubscribing from before confirming. The effectiveness of unsubscribes depends on the sender honoring your request
+This tool is for personal use. Always review what you're unsubscribing from before confirming. The effectiveness of unsubscribes depends on the sender honoring your request.
+
+**Privacy Note:** This app runs entirely on your local machine. Your Gmail credentials never leave your computer, and no data is sent to any third-party servers (except Google's Gmail API for authentication and OpenAI's API if you enable AI hot takes).

@@ -13,6 +13,8 @@ token.json
 
 # Database
 unsubscribe_history.db
+*.db
+*.db-journal
 
 # Environment
 .env
@@ -20,8 +22,18 @@ unsubscribe_history.db
 # User profile (contains personal info)
 user_profile.json
 
+# Generated reports
+resubscribe_report_*.txt
+*.log
+
+# macOS
+.DS_Store
+
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# Playwright
+.playwright/
