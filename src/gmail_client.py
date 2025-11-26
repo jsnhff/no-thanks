@@ -58,19 +58,43 @@ class GmailClient:
 
         # Load existing token if available
         if os.path.exists(self.token_path):
-            with open(self.token_path, 'rb') as token:
-                creds = pickle.load(token)
+            try:
+                with open(self.token_path, 'rb') as token:
+                    creds = pickle.load(token)
+            except Exception as e:
+                print(f"Warning: Could not load existing token: {e}")
+                # Delete corrupted token file
+                if os.path.exists(self.token_path):
+                    os.remove(self.token_path)
+                creds = None
 
         # If no valid credentials, let user log in
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
+                try:
+                    print("Refreshing expired token...")
+                    creds.refresh(Request())
+                except Exception as e:
+                    # Token refresh failed (expired or revoked)
+                    print(f"Token refresh failed: {e}")
+                    print("Your Gmail token has expired or been revoked.")
+                    print("Deleting old token and prompting for re-authentication...\n")
+
+                    # Delete expired token
+                    if os.path.exists(self.token_path):
+                        os.remove(self.token_path)
+
+                    # Force re-authentication
+                    creds = None
+
+            # Need fresh authentication
+            if not creds:
                 if not os.path.exists(self.credentials_path):
                     print(f"Error: {self.credentials_path} not found!")
                     print("Please download OAuth credentials from Google Cloud Console.")
                     return False
 
+                print("Opening browser for Gmail authentication...")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.credentials_path, SCOPES)
                 creds = flow.run_local_server(port=0)
