@@ -1,11 +1,12 @@
 # LinkedIn Post Prompt for ChatGPT
 
-Write a LinkedIn post announcing the public release of my new open-source project: **Gmail AI Unsubscriber**
+Write a LinkedIn post announcing the public release of my new open-source project: **No Thanks**
 
 ## Project Details
 
-**Name:** Gmail AI Unsubscriber
-**Repository:** https://github.com/jsnhff/gmail-ai-unsubscriber
+**Name:** No Thanks
+**Tagline:** What you actually say to people trying to sell you crap—now automated.
+**Repository:** https://github.com/jsnhff/no-thanks
 **License:** Non-Commercial Open Source (free to use, remix, share - but not sell)
 **Tech Stack:** Python, Gmail API, Playwright browser automation, OpenAI GPT-4o-mini
 
