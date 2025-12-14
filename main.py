@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Gmail Unsubscriber - Automatically unsubscribe from unwanted emails with your approval.
+No Thanks - Automatically unsubscribe from unwanted emails.
+What you actually say to people trying to sell you crap—now automated.
 """
 
 import asyncio
@@ -23,7 +24,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskPr
 from rich.panel import Panel
 
 
-class GmailUnsubscriber:
+class NoThanks:
     """Main application orchestrator."""
 
     def __init__(self, headless: bool = False, max_emails: int = 50, skip_ai: bool = False):
@@ -741,7 +742,7 @@ class GmailUnsubscriber:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description='Gmail Unsubscriber - Automatically unsubscribe from unwanted emails'
+        description='No Thanks - Automatically unsubscribe from unwanted emails'
     )
     parser.add_argument(
         '--headless',
@@ -799,7 +800,7 @@ def main():
 
     args = parser.parse_args()
 
-    app = GmailUnsubscriber(headless=args.headless, max_emails=args.max_emails, skip_ai=args.no_ai)
+    app = NoThanks(headless=args.headless, max_emails=args.max_emails, skip_ai=args.no_ai)
 
     try:
         if args.check_effectiveness:

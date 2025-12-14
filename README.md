@@ -1,14 +1,17 @@
 ```
-  ____                 _ _   _    _                 _                   _ _
- / ___|_ __ ___   __ _(_) | | |  | |_ __  ___ _   _| |__  ___  ___ _ __(_) |__   ___ _ __
-| |  _| '_ ` _ \ / _` | | | | |  | | '_ \/ __| | | | '_ \/ __|/ __| '__| | '_ \ / _ \ '__|
-| |_| | | | | | | (_| | | | | |__| | | | \__ \ |_| | |_) \__ \ (__| |  | | |_) |  __/ |
- \____|_| |_| |_|\__,_|_|_|  \____/|_| |_|___/\__,_|_.__/|___/\___|_|  |_|_.__/ \___|_|
+ _   _         _____ _                 _
+| \ | |       |_   _| |               | |
+|  \| | ___     | | | |__   __ _ _ __ | | _____
+| . ` |/ _ \    | | | '_ \ / _` | '_ \| |/ / __|
+| |\  | (_) |   | | | | | | (_| | | | |   <\__ \
+\_| \_/\___/    \_/ |_| |_|\__,_|_| |_|_|\_\___/
 ```
 
 **Take back your inbox. One unsubscribe at a time.**
 
-A local Python application that helps you automatically unsubscribe from unwanted emails in Gmail with your approval. Uses Playwright to intelligently navigate unsubscribe links, AI to roast your subscriptions, and tracks effectiveness over time.
+What you actually say to people trying to sell you crap—now automated.
+
+A local Python tool that uses AI to identify email subscriptions you never read, gives you brutally honest summaries of what they send, and automates the tedious clicking to unsubscribe. Runs on your machine, not in someone else's cloud.
 
 ### 🔥 AI Hot Takes - See What You're Actually Subscribed To
 
@@ -54,8 +57,8 @@ The easiest way to get started:
 
 ```bash
 # 1. Clone and enter the directory
-git clone https://github.com/yourusername/gmail-cleaner.git
-cd gmail-cleaner
+git clone https://github.com/jsnhff/no-thanks.git
+cd no-thanks
 
 # 2. Run the setup script (does everything for you!)
 python3 -m venv venv
@@ -74,8 +77,8 @@ That's it! The app will open a browser window for you to sign in to Gmail on fir
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/gmail-cleaner.git
-cd gmail-cleaner
+git clone https://github.com/jsnhff/no-thanks.git
+cd no-thanks
 ```
 
 ### 2. Create a virtual environment
@@ -135,7 +138,7 @@ Without a profile, it gives generic assessments. With a profile, it's tailored t
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project (or select an existing one)
-3. Give it a name like "Gmail Unsubscriber"
+3. Give it a name like "No Thanks"
 
 #### b. Enable Gmail API
 
@@ -149,20 +152,20 @@ Without a profile, it gives generic assessments. With a profile, it's tailored t
 2. Click **Create Credentials** > **OAuth client ID**
 3. If prompted, configure the OAuth consent screen:
    - User Type: **External**
-   - App name: "Gmail Unsubscriber"
+   - App name: "No Thanks"
    - User support email: Your email
    - Developer contact: Your email
    - Scopes: You can skip this for now
    - Test users: Add your Gmail address
 4. Back at Create OAuth client ID:
    - Application type: **Desktop app**
-   - Name: "Gmail Unsubscriber"
+   - Name: "No Thanks"
 5. Click **Create**
 6. Download the credentials JSON file
 7. **Rename it to `credentials.json`** and place it in the project root directory
 
 ```
-gmail-cleaner/
+no-thanks/
 ├── credentials.json  ← Place your downloaded OAuth credentials here
 ├── main.py
 ├── requirements.txt

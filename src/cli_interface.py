@@ -17,8 +17,8 @@ class CLIInterface:
     def display_welcome(self):
         """Display welcome message."""
         welcome_text = Text()
-        welcome_text.append("Gmail Unsubscriber\n", style="bold cyan")
-        welcome_text.append("Automatically unsubscribe from unwanted emails with your approval", style="dim")
+        welcome_text.append("No Thanks\n", style="bold cyan")
+        welcome_text.append("What you actually say to people trying to sell you crap—now automated", style="dim")
 
         self.console.print(Panel(welcome_text, border_style="cyan"))
         self.console.print()

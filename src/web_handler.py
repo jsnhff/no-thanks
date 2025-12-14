@@ -34,7 +34,7 @@ class UnsubscribeWebHandler:
             </head>
             <body>
                 <div class="container">
-                    <h1>📧 Gmail Unsubscriber</h1>
+                    <h1>📧 No Thanks</h1>
                     <p>Web handler is running!</p>
                     <p>Click the unsubscribe button in your daily email to use this.</p>
                 </div>

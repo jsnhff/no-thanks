@@ -107,8 +107,8 @@ class EmailNotifier:
                     </div>
 
                     <div class="footer">
-                        <p>Gmail Unsubscriber - Daily Report<br>
-                        This is an automated email from your local Gmail Unsubscriber app.</p>
+                        <p>No Thanks - Daily Report<br>
+                        This is an automated email from your local No Thanks app.</p>
                     </div>
                 </div>
             </body>
@@ -211,8 +211,8 @@ class EmailNotifier:
                 </div>
 
                 <div class="footer">
-                    <p>Gmail Unsubscriber - Daily Report<br>
-                    This is an automated email from your local Gmail Unsubscriber app.<br>
+                    <p>No Thanks - Daily Report<br>
+                    This is an automated email from your local No Thanks app.<br>
                     <small>Yes, the irony of sending an email to help you unsubscribe from emails is not lost on us. 😄</small></p>
                 </div>
             </div>
