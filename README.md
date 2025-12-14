@@ -37,7 +37,7 @@ The app uses AI to generate brutally honest summaries of what each sender actual
 - 🤖 **AI-Powered Hot Takes** - Get brutally honest summaries of what each sender actually sends you
 - 📧 **Smart Inbox Scanning** - Finds all emails with unsubscribe links across your entire Gmail
 - 🎯 **Reading Pattern Analysis** - Identifies subscriptions you never read
-- ✂️ **Interactive CLI** - Swipe-style "Keep or Cut" interface for reviewing subscriptions
+- ✂️ **Interactive CLI** - Swipe-style "Keep 📥 or Cut 🔪" interface for reviewing subscriptions
 - 🤖 **Automated Unsubscribe Agent** - Playwright browser automation handles the clicking for you
 - 🗄️ **Auto-Archive** - Automatically archives emails after unsubscribing to clean up your inbox
 - 📊 **Effectiveness Tracking** - SQLite database monitors if senders actually stop emailing you

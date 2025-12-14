@@ -311,7 +311,7 @@ class CLIInterface:
 
             # Quick Keep or Cut decision
             self.console.print()
-            self.console.print("[dim]k[/dim] = keep 💚  |  [dim]c[/dim] = cut 🔪  |  [dim]q[/dim] = quit")
+            self.console.print("[dim]k[/dim] = keep 📥  |  [dim]c[/dim] = cut 🔪  |  [dim]q[/dim] = quit")
             choice = Prompt.ask(
                 "[bold cyan]Your choice[/bold cyan]",
                 choices=["keep", "k", "cut", "c", "quit", "q"],
@@ -325,7 +325,7 @@ class CLIInterface:
                 self.console.print(f"[red]🔪 Marked for cutting[/red] ({len(to_cut)} total)\n")
             elif choice in ["keep", "k"]:
                 declined.append(offender)
-                self.console.print(f"[green]💚 Keeping[/green]\n")
+                self.console.print(f"[cyan]📥 Keeping[/cyan]\n")
             elif choice in ["quit", "q"]:
                 self.console.print("[yellow]Stopped reviewing. Processing cuts so far...[/yellow]\n")
                 break
