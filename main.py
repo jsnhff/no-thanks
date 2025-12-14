@@ -778,7 +778,8 @@ def show_welcome_banner():
 def check_first_time_setup():
     """Check if this is the first time running and show welcome if needed."""
     from rich.console import Console
-    from rich.prompt import Confirm
+    from rich.prompt import Confirm, Prompt
+    from rich.table import Table
 
     # Check if token.json exists (indicates previous auth)
     token_exists = os.path.exists('token.json')
@@ -787,18 +788,53 @@ def check_first_time_setup():
         show_welcome_banner()
 
         console = Console()
-        console.print("[bold cyan]To get started, you'll need to connect your Gmail account.[/bold cyan]")
+
+        # Show available modes
+        console.print("[bold cyan]What would you like to do?[/bold cyan]\n")
+
+        table = Table(show_header=True, header_style="bold magenta", box=None, padding=(0, 2))
+        table.add_column("Option", style="cyan", width=8)
+        table.add_column("Mode", style="white", width=20)
+        table.add_column("Description", style="dim", width=50)
+
+        table.add_row("1", "Smart Suggestions", "Analyze 90 days of emails and suggest what to unsubscribe from (recommended)")
+        table.add_row("2", "Daily Cleanup", "Review one subscription per day")
+        table.add_row("3", "Aggressive Mode", "Bulk unsubscribe from everything you rarely read")
+        table.add_row("4", "Manual Mode", "Browse all subscriptions and choose yourself")
+
+        console.print(table)
+        console.print()
+
+        console.print("[dim]💡 Tip: After first run, you can use flags like[/dim] [cyan]--suggest[/cyan] [dim]or[/dim] [cyan]--daily[/cyan]")
+        console.print("[dim]   Or just run[/dim] [cyan]unsubscribe[/cyan] [dim]for smart suggestions mode[/dim]\n")
+
+        choice = Prompt.ask(
+            "[cyan]Choose an option[/cyan]",
+            choices=["1", "2", "3", "4"],
+            default="1"
+        )
+
+        console.print()
+        console.print("[bold cyan]Great! First, you'll need to connect your Gmail account.[/bold cyan]")
         console.print("[dim]This will open a browser window for secure Google OAuth authentication.[/dim]\n")
 
-        if not Confirm.ask("[cyan]Ready to connect your Gmail account?[/cyan]", default=True):
+        if not Confirm.ask("[cyan]Ready to connect and get started?[/cyan]", default=True):
             console.print("\n[yellow]No problem! Run the command again when you're ready.[/yellow]")
-            console.print("[dim]You can also check the README for setup instructions: https://github.com/jsnhff/no-thanks[/dim]\n")
+            console.print("[dim]You can also check the README: https://github.com/jsnhff/no-thanks[/dim]\n")
             sys.exit(0)
 
         console.print()
-        return True
 
-    return False
+        # Return the chosen mode
+        mode_map = {
+            "1": "suggest",
+            "2": "daily",
+            "3": "aggressive",
+            "4": "manual"
+        }
+        return mode_map[choice]
+
+    return None
 
 
 def main():
@@ -863,12 +899,26 @@ def main():
     args = parser.parse_args()
 
     # Check for first-time setup and show welcome
-    check_first_time_setup()
+    first_time_mode = check_first_time_setup()
 
     app = NoThanks(headless=args.headless, max_emails=args.max_emails, skip_ai=args.no_ai)
 
     try:
-        if args.check_effectiveness:
+        # If first-time setup returned a mode, use that instead of args
+        if first_time_mode:
+            if not app.gmail.authenticate():
+                print("Failed to authenticate with Gmail.")
+                return
+
+            if first_time_mode == "suggest":
+                app.run_suggest_mode(days_back=90)
+            elif first_time_mode == "daily":
+                app.run_daily_mode()
+            elif first_time_mode == "aggressive":
+                app.run_aggressive_mode(days_back=90, engagement_threshold=10)
+            elif first_time_mode == "manual":
+                app.run()
+        elif args.check_effectiveness:
             # Authenticate first
             if not app.gmail.authenticate():
                 print("Failed to authenticate with Gmail.")
