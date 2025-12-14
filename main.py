@@ -7,10 +7,14 @@ What you actually say to people trying to sell you crap—now automated.
 import asyncio
 import sys
 import argparse
+import os
 from datetime import datetime
 from email.utils import parseaddr
 from dotenv import load_dotenv
 from typing import List, Dict
+
+# Version
+__version__ = "1.0.1"
 
 # Load environment variables from .env file
 load_dotenv()
@@ -739,6 +743,64 @@ class NoThanks:
         self.cli.console.print("[dim]You can use the unsubscribe links above to resubscribe if needed.[/dim]\n")
 
 
+def show_welcome_banner():
+    """Display welcome banner for first-time users."""
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.text import Text
+
+    console = Console()
+
+    banner = r"""
+ _   _         _____ _                 _
+| \ | |       |_   _| |               | |
+|  \| | ___     | | | |__   __ _ _ __ | | _____
+| . ` |/ _ \    | | | '_ \ / _` | '_ \| |/ / __|
+| |\  | (_) |   | | | | | | (_| | | | |   <\__ \
+\_| \_/\___/    \_/ |_| |_|\__,_|_| |_|_|\_\___/
+    """
+
+    welcome_text = Text()
+    welcome_text.append(banner, style="cyan")
+    welcome_text.append(f"\n\nNo Thanks™ v{__version__}\n", style="bold cyan")
+    welcome_text.append("What you actually say to people trying to sell you crap—now automated.\n\n", style="dim")
+    welcome_text.append("👋 Welcome! Looks like this is your first time running No Thanks.\n\n", style="white")
+    welcome_text.append("This tool will help you:\n", style="white")
+    welcome_text.append("  • Analyze which emails you actually read\n", style="dim")
+    welcome_text.append("  • Get honest summaries of what senders send you\n", style="dim")
+    welcome_text.append("  • Unsubscribe from the ones you ignore\n", style="dim")
+    welcome_text.append("\nEverything runs locally on your machine. Your data stays private.\n", style="dim")
+
+    console.print(Panel(welcome_text, border_style="cyan", padding=(1, 2)))
+    console.print()
+
+
+def check_first_time_setup():
+    """Check if this is the first time running and show welcome if needed."""
+    from rich.console import Console
+    from rich.prompt import Confirm
+
+    # Check if token.json exists (indicates previous auth)
+    token_exists = os.path.exists('token.json')
+
+    if not token_exists:
+        show_welcome_banner()
+
+        console = Console()
+        console.print("[bold cyan]To get started, you'll need to connect your Gmail account.[/bold cyan]")
+        console.print("[dim]This will open a browser window for secure Google OAuth authentication.[/dim]\n")
+
+        if not Confirm.ask("[cyan]Ready to connect your Gmail account?[/cyan]", default=True):
+            console.print("\n[yellow]No problem! Run the command again when you're ready.[/yellow]")
+            console.print("[dim]You can also check the README for setup instructions: https://github.com/jsnhff/no-thanks[/dim]\n")
+            sys.exit(0)
+
+        console.print()
+        return True
+
+    return False
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -799,6 +861,9 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Check for first-time setup and show welcome
+    check_first_time_setup()
 
     app = NoThanks(headless=args.headless, max_emails=args.max_emails, skip_ai=args.no_ai)
 
