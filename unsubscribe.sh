@@ -1,5 +1,5 @@
 #!/bin/bash
-# Gmail Unsubscriber - Easy launcher script with AI-powered suggestions
+# No Thanks™ - Easy launcher script with AI-powered suggestions
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

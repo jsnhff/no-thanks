@@ -7,6 +7,8 @@
 \_| \_/\___/    \_/ |_| |_|\__,_|_| |_|_|\_\___/
 ```
 
+# No Thanks™
+
 **Take back your inbox. One unsubscribe at a time.**
 
 What you actually say to people trying to sell you crap—now automated.
@@ -182,7 +184,7 @@ The easiest way to use the app is with the built-in alias:
 unsubscribe
 ```
 
-This runs the smart suggestion mode with good defaults (60 days lookback, headless browser).
+This runs the smart suggestion mode with good defaults (90 days lookback, headless browser).
 
 **First time setup:** Reload your shell config or open a new terminal:
 ```bash
